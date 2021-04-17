@@ -117,23 +117,6 @@ for item in list(range(len(dacValB_m27))):
 f.write("\n")
 
 
-# ------------
-# for item in list(range(len(dacValB_m12))):
-#     f.write("dacValB_m12["+str(item)+"] = "+"%s;\n" % hex(dacValB_m12[item]))
-# f.write("\n")
-
-
-# for item in list(range(len(dacValA_m27))):
-#     f.write("dacValA_m27["+str(item)+"] = "+"%s;\n" % hex(dacValA_m27[item]))
-# f.write("\n")
-
-
-# for item in list(range(len(dacValB_m27))):
-#     f.write("dacValB_m27["+str(item)+"] = "+"%s;\n" % hex(dacValB_m27[item]))
-# f.write("\n")
-
-
-
 f.write(" }"+EOF)
 
 f.close()
