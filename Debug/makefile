@@ -1,0 +1,77 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+-include ../makefile.init
+
+RM := rm -rf
+
+# All of the sources participating in the build are defined here
+-include sources.mk
+-include USB_DEVICE/Target/subdir.mk
+-include USB_DEVICE/App/subdir.mk
+-include Middlewares/ST/STM32_USB_Device_Library/Core/Src/subdir.mk
+-include Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/subdir.mk
+-include Drivers/STM32F1xx_HAL_Driver/Src/subdir.mk
+-include Core/Startup/subdir.mk
+-include Core/Src/subdir.mk
+-include subdir.mk
+-include objects.mk
+
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(strip $(C_DEPS)),)
+-include $(C_DEPS)
+endif
+endif
+
+-include ../makefile.defs
+
+# Add inputs and outputs from these tool invocations to the build variables 
+EXECUTABLES += \
+Probe_LA_v5_calibrate_table.elf \
+
+SIZE_OUTPUT += \
+default.size.stdout \
+
+OBJDUMP_LIST += \
+Probe_LA_v5_calibrate_table.list \
+
+OBJCOPY_BIN += \
+Probe_LA_v5_calibrate_table.bin \
+
+
+# All Target
+all: Probe_LA_v5_calibrate_table.elf secondary-outputs
+
+# Tool invocations
+Probe_LA_v5_calibrate_table.elf: $(OBJS) $(USER_OBJS) C:\Users\kozlov\STM32CubeIDE\workspace_1.2.0\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld
+	arm-none-eabi-gcc -o "Probe_LA_v5_calibrate_table.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\kozlov\STM32CubeIDE\workspace_1.2.0\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Probe_LA_v5_calibrate_table.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	@echo 'Finished building target: $@'
+	@echo ' '
+
+default.size.stdout: $(EXECUTABLES)
+	arm-none-eabi-size  $(EXECUTABLES)
+	@echo 'Finished building: $@'
+	@echo ' '
+
+Probe_LA_v5_calibrate_table.list: $(EXECUTABLES)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Probe_LA_v5_calibrate_table.list"
+	@echo 'Finished building: $@'
+	@echo ' '
+
+Probe_LA_v5_calibrate_table.bin: $(EXECUTABLES)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "Probe_LA_v5_calibrate_table.bin"
+	@echo 'Finished building: $@'
+	@echo ' '
+
+# Other Targets
+clean:
+	-$(RM) *
+	-@echo ' '
+
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_BIN)
+
+.PHONY: all clean dependents
+.SECONDARY:
+
+-include ../makefile.targets
