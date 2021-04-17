@@ -25,6 +25,8 @@
 /* USER CODE BEGIN INCLUDE */
 #include "main.h"
 #include "string.h"
+#include "stdio.h"
+
 
 /* USER CODE END INCLUDE */
 
@@ -101,7 +103,7 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-uint8_t RelayState = 0x00;
+uint8_t RelayState = 0x00; // первоначальное состояние реле
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -301,12 +303,13 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 
 	//CDC_Transmit_FS(Buf, *Len);
 
-	// Relay:1	[0x01 - 0x01]
+	// Relay:1 - 12V	[0x01 - 0x01]
 	if (cmd == 0x01) {
 		if (*Len >= 2 && (Buf[1] == 0x01 || Buf[1] == 0x00)) {
 			if (Buf[1] == 0x01) {
 				HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_SET);
 				RelayState = 0x01;
+				printf("RelayState:12V - %d \n", RelayState);
 
 				UserTxBufferFS[0]	= cmd;
 				UserTxBufferFS[1]	= 0x00;	// успешно
@@ -316,6 +319,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 			} else if (Buf[1] == 0x00) {
 				HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_RESET);
 				RelayState = 0x00;
+				printf("RelayState:27V - %d \n", RelayState);
 
 				UserTxBufferFS[0] = cmd;
 				UserTxBufferFS[1] = 0x00;	// успешно
@@ -336,7 +340,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 			resValTIM4_PB6(); // обнуление переменной для проведения калиброки
 			memcpy(&tVal16, Buf + 1, sizeof(tVal16));
 			SetDacA(tVal16);
-
+			printf("DacA: %d\n", tVal16);
 			UserTxBufferFS[0] = cmd;
 			UserTxBufferFS[1] = 0x00;	// успешно
 			CDC_Transmit_FS(UserTxBufferFS, 2);
@@ -358,6 +362,11 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 
 			UserTxBufferFS[0] = cmd;
 			UserTxBufferFS[1] = 0x00;	// успешно
+
+			printf("DacB: %d \n",tVal16);
+			printf("DacB_V: %d \n",tVal16);
+
+
 			CDC_Transmit_FS(UserTxBufferFS, 2);
 			return (USBD_OK);
 		}

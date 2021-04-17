@@ -21,7 +21,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
-#include "logic_calibration_table.h"
+//#include "logic_calibration_table.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -39,6 +39,8 @@ char UARTtrans_str[64] = {0,};
 /* USER CODE BEGIN PD */
 
 // Тестовые сборки
+
+#define DEBUG_SWO				1
 #define TEST_RELAY_BKP			0
 #define TEST_DAC 				0
 #define TEST_DAC_WHILE 			1
@@ -75,8 +77,8 @@ UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 //--------------------------------------------------------------------------
-uint16_t VDAC_A	= 2200;
-uint16_t VDAC_B	= 2400;
+uint16_t VDAC_A	= 2154;
+uint16_t VDAC_B	= 2154;
 //--------------------------------------------------------------------------
 #if TEST_ADC
 volatile uint16_t g_VADC = 0;
@@ -178,6 +180,17 @@ uint16_t GetDacB() {
 //};
 
 //--------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------
+// Чтение ID контроллера
+//#define UID_BASE 0x1FFFF7E8
+uint16_t *idBase0 = (uint16_t*)(UID_BASE);
+uint16_t *idBase1 = (uint16_t*)(UID_BASE + 0x02);
+uint32_t *idBase2 = (uint32_t*)(UID_BASE + 0x04);
+uint32_t *idBase3 = (uint32_t*)(UID_BASE + 0x08);
+
+char buffer[64] = {0,};
+//-----------------------------------------------------------------------------
 
 
 uint8_t GetBtnRunState() {
@@ -367,6 +380,20 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 
 }
 
+//--------------------------------------------------------------------------
+#if	 DEBUG_SWO
+int _write(int32_t file, uint8_t *ptr, int32_t len)
+{
+	for (int i = 0; i < len; i++)
+	{
+		ITM_SendChar(*ptr++);
+	}
+	return len;
+}
+//--------------------------------------------------------------------------
+
+#endif	/* DEBUG_SWO */
+
 
 //--------------------------------------------------------------------------
 
@@ -437,6 +464,12 @@ int main(void)
 //  s_Calibration_table s_table;
 //  s_table->
 
+
++//--------------------------------------------------------------------------
+
+  sprintf(buffer, "UID %x-%x-%lx-%lx\n", *idBase0, *idBase1, *idBase2, *idBase3);
+  printf((uint8_t*)buffer);
+  
 //--------------------------------------------------------------------------
 #if TEST_ADC
 //ADC
