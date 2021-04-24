@@ -35,15 +35,15 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  15 .debug_ranges 00001498  00000000  00000000  00045430  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  0001d671  00000000  00000000  000468c8  2**0
+ 16 .debug_macro  0001d6d5  00000000  00000000  000468c8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   0001ba38  00000000  00000000  00063f39  2**0
+ 17 .debug_line   0001ba37  00000000  00000000  00063f9d  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    00097595  00000000  00000000  0007f971  2**0
+ 18 .debug_str    000975b0  00000000  00000000  0007f9d4  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000053  00000000  00000000  00116f06  2**0
+ 19 .comment      00000053  00000000  00000000  00116f84  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  000065cc  00000000  00000000  00116f5c  2**2
+ 20 .debug_frame  000065cc  00000000  00000000  00116fd8  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -3386,8 +3386,8 @@ int main(void)
 	HAL_ADC_Start_IT(&hadc1);
  8001c68:	48b5      	ldr	r0, [pc, #724]	; (8001f40 <main+0x364>)
  8001c6a:	f001 f98d 	bl	8002f88 <HAL_ADC_Start_IT>
-//
-//}
+////--------------------------------------------------------------------------
+
 	union NVRAM DevNVRAM;
 	static FLASH_EraseInitTypeDef EraseInitStruct; // структура для очистки флеша
 
