@@ -280,14 +280,23 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	// command
 	// 0x01 - включение рэле										data: 1B (0x00 - выключить; 0x01 - включить)	answer: 0x01 + 1B status
 	// 0x02 - ЦАП канал А											data: 2B (значение)								answer: 0x02 + 1B status
+	// TODO: 0x02 - Значение уроня компарирования А					data: 2B (значение)								answer: 0x02 + 1B status
 	// 0x03 - ЦАП канал B											data: 2B (значение)								answer: 0x03 + 1B status
+	// TODO: 0x03 - Значение уроня компарирования B					data: 2B (значение)								answer: 0x02 + 1B status
 	// 0x04 - АЦП запрос значения									data: 0B										answer: 0x04 + 2B value
 	// 0x05 - запрос состояния (Relay, DA, DB)						data: 0B										answer: 0x05 + 1B состиояние рэле + 2B значение ЦАП канал А + 2B значение ЦАП канал B
 	// 0x06 - запрос состояния кнопок (Run, Up, Down)				data: 0B										answer: 0x06 + 1B состояние кнопки Run + 1B состояние кнопки Up + 1B состояние кнопки Down
 	// 0x07 - запрос ID устройства
+	
+	//TODO SN; 							4 байт		Серийный номер щупа
+	//TODO Hardwire;/					2 байта		Версия железа	   
+	//TODO Firmware;					2 байта 	Версия прошивки	   
 	// ("prb_v0.1"/ 0x70 0x72 0x62 0x5F 0x76 0x30 0x2E 0x31)		data: 0B										answer: 0x07 + 8B ID ("prb_v0.1")
 	// 0х08 - запрос срабатывания компаратора inHL					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x08 + 1B status
 	// 0х09 - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+	
+	//TODO: 0х09 Функция приема новой калибровочной таблицы				
+	//TODO: 0х0A Вход в калибровочный режим работы						
 
 	// status
 	// 0x00 - успешно

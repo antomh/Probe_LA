@@ -1,90 +1,5 @@
 #include "logic_calibration_table.h"
-//#if  TEST_FLASH_TABLE
-////#include main.h
-////--------------------------------------------------------------------------
-//#define FLASH_TABLE_START_ADDR		ADDR_FLASH_PAGE_127
-//#define FLASH_TABLE_STOP_ADDR		FLASH_TABLE_START_ADDR+FLASH_PAGE_SIZE
-////--------------------------------------------------------------------------
-//#define MAGIC_KEY_DEFINE			0x48151623
-//#define HARDWIRE_DEFINE 			0x06
-//#define FIRMWARE_DEFINE 			0x05
-//#define SN_DEFINE 					0x1121001
-////--------------------------------------------------------------------------
-//#define MAX_VAL_M12 				88//	шаг 0,2В в диапозоне [-5:12:0,2] 85  TODO:найти что за 3 значения?!
-//#define MAX_VAL_M27 				163//	шаг 0,2В в диапозоне [-30:30:0,2] 163*0.2= 32,6
-////--------------------------------------------------------------------------
-//
-//	typedef struct // 							4+4+4+176+176+326+326 = 1016 байт
-//	{
-//		uint16_t Hardwire; //					2 байта
-//		uint16_t Firmware; //					2 байта
-//		uint32_t SN; //							4 байта
-//
-//		uint32_t MagicNum; //0x4815162342		4 байта ==>4+4+2+2 = 12
-//
-//		uint16_t dacValA_m12[MAX_VAL_M12]; //	88*2 = 176 байта
-//		uint16_t dacValB_m12[MAX_VAL_M12]; //	88*2 = 176 байта
-//		uint16_t dacValA_m27[MAX_VAL_M27]; //	163*2 = 326 байта
-//		uint16_t dacValB_m27[MAX_VAL_M27]; //	163*2 = 326 байта ==> 1004 + 12 = 1016
-//
-//	} Table_t;
-//
-//	struct FLASH_Sector {
-//		uint32_t data[256 - 2]; // 	254* 4 = 1016 байта (1016 байт)
-//		uint32_t NWrite; //			4 байта
-//		uint32_t CheckSum; //		4 байта ==>1016 + 4 + 4 = 1024
-//	};
-//
-//	union NVRAM {
-//		Table_t calibration_table; //			1016 байт
-//		struct FLASH_Sector sector; //			1024 байт
-//
-//		uint32_t data32[256]; // 			1024 байт
-//		uint8_t data16[256 * 2]; // 		1024 байт
-//		uint8_t data8[256 * 4]; // 			1024 байт
-//	};
-//	//										1024 байт
-//
-////--------------------------------------------------------------------------
-//	union NVRAM DevNVRAM;
 
-//----------
-
-//typedef struct // 							4+4+4+176+176+326+326 = 1016 байт
-//{
-//	uint16_t Hardwire; //					2 байта
-//	uint16_t Firmware; //					2 байта
-//	uint32_t SN; //							4 байта
-//
-//	uint32_t MagicNum; //0x4815162342		4 байта ==>4+4+2+2 = 12
-//
-//	uint16_t dacValA_m12[MAX_VAL_M12]; //	88*2 = 176 байта
-//	uint16_t dacValB_m12[MAX_VAL_M12]; //	88*2 = 176 байта
-//	uint16_t dacValA_m27[MAX_VAL_M27]; //	163*2 = 326 байта
-//	uint16_t dacValB_m27[MAX_VAL_M27]; //	163*2 = 326 байта ==> 1004 + 12 = 1016
-//
-//} Table_t;
-//
-//struct FLASH_Sector {
-//	uint32_t data[256 - 2]; // 	254* 4 = 1016 байта (1016 байт)
-//	uint32_t NWrite; //			4 байта
-//	uint32_t CheckSum; //		4 байта ==>1016 + 4 + 4 = 1024
-//};
-//
-//union NVRAM {
-//	Table_t calibration_table; //			1016 байт
-//	struct FLASH_Sector sector; //			1024 байт
-//
-//	uint32_t data32[256]; // 			1024 байт
-//	uint8_t data16[256 * 2]; // 		1024 байт
-//	uint8_t data8[256 * 4]; // 			1024 байт
-//};
-////										1024 байт
-
-//--------------------------------------------------------------------------
-//union NVRAM DevNVRAM;
-//--------------------------------------------------------------------------
-////--------------------------------------------------------------------------
 void crete_calibration_table(union NVRAM *DevNVRAM) {
 
 	DevNVRAM->calibration_table.dacValA_m12[0] = 0x0;
@@ -595,14 +510,49 @@ void crete_calibration_table(union NVRAM *DevNVRAM) {
 
 }
 
-uint16_t find_value(union NVRAM *DevNVRAM, uint32_t Volt) {
+////--------------------------------------------------------------------------
+////  Интерполяция
+uint16_t interpolation_dacVAL(uint16_t valDAC_0,uint16_t valDAC_1,uint16_t ya,uint16_t yb,uint16_t yc){
+	uint16_t determined_value = 0;
+	return determined_value = (yc - yb) * ((valDAC_0 - valDAC_1) / (ya - yb)) + valDAC_1;
+}
+
+
+//uint16_t interpolation_dacVAL(uint16_t xa,uint16_t xb,uint16_t ya,uint16_t yb,uint16_t yc){
+//	uint16_t determined_value = 0;
+// 	m = (xa - xb) / (ya - yb);
+//    xc = (yc - yb) * m + xb;
+//
+//    xc = (yc - yb) * (xa - xb) / (ya - yb) + xb;
+//
+//	return determined_value
+//}
+//--------------------------------------------------------------------------
+// Для перевода напряжения (в вольтах) в код ЦАП
+uint16_t vlt2dgt(uint16_t V) {
+	uint16_t valDAC;
+	return valDAC = (V/DAC_REF)*DAC_MAX;
+}
+//--------------------------------------------------------------------------
+uint16_t findValDAC(union NVRAM *DevNVRAM, uint16_t Volt) {
+	// Проверим что таблица записана и контрольная сумма совпадает
 	if ((DevNVRAM->calibration_table.MagicNum == MAGIC_KEY_DEFINE)
 			&& ((DevNVRAM->sector.CheckSum == DevNVRAM->sector.CheckSum))) {
-		while (0 < MAX_VAL_M12) {
-//			DevNVRAM->calibration_table.dacValA_m12p[i]
+		//TODO: c начала найти значений которые есть в таблице
 
+		for (int i = 0; i < MAX_VAL_M12; ++i) {
+
+		if (DevNVRAM->calibration_table.dacValA_m12[i] == vlt2dgt(Volt)) {
+					return DevNVRAM->calibration_table.dacValA_m12[i];
+				}
+				//TODO: Если нет в таблице, то интерпалировать из ближайшего меньшего и сдедующего
+			else
+			{
+
+				//TODO Калибровочная не верная!!!
+
+			}
 		}
-
 	}
 }
 
