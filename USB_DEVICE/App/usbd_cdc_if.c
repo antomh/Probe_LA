@@ -103,7 +103,7 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-uint8_t RelayState = 0x00; // первоначальное состояние реле
+uint8_t RelayState = 0x00; //TODO:ппроверить первое состоянеи первоначальное состояние реле 27V
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -254,10 +254,11 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
   *         through this function.
   *
   *         @note
-  *         This function will block any OUT packet reception on USB endpoint
-  *         untill exiting this function. If you exit this function before transfer
-  *         is complete on CDC interface (ie. using DMA controller) it will result
-  *         in receiving more data while previous ones are still not sent.
+  *         This function will issue a NAK packet on any OUT packet received on
+  *         USB endpoint until exiting this function. If you exit this function
+  *         before transfer is complete on CDC interface (ie. using DMA controller)
+  *         it will result in receiving more data while previous ones are still
+  *         not sent.
   *
   * @param  Buf: Buffer of data to be received
   * @param  Len: Number of data received (in bytes)
@@ -269,11 +270,9 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
 	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
-#define HEX_PC_MODE 		1 // Возможность отправлять команды в виде HEX
-#define KOSTIK_MODE 		0 // Возможность отправлять команды в виде строк
-
-#if HEX_PC_MODE
 	if (*Len < 1)	return (USBD_OK);
+
+//--------------------------------------------------------------------------
 
 	uint16_t tVal16;
 	uint8_t cmd	= Buf[0];
@@ -301,7 +300,8 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	 * Т.е. каждый раз когда мы меняем входной код - мы запрашиваем контроллер щупа о состоянии выходов компаратора.
 	 */
 
-	//CDC_Transmit_FS(Buf, *Len);
+//--------------------------------------------------------------------------
+
 
 	// Relay:1 - 12V	[0x01 - 0x01]
 	if (cmd == 0x01) {
@@ -310,6 +310,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 				HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_SET);
 				RelayState = 0x01;
 				printf("RelayState:12V - %d \n", RelayState);
+				SetAllDAC();
 
 				UserTxBufferFS[0]	= cmd;
 				UserTxBufferFS[1]	= 0x00;	// успешно
@@ -320,6 +321,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 				HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_RESET);
 				RelayState = 0x00;
 				printf("RelayState:27V - %d \n", RelayState);
+				SetAllDAC();
 
 				UserTxBufferFS[0] = cmd;
 				UserTxBufferFS[1] = 0x00;	// успешно
@@ -333,6 +335,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 		CDC_Transmit_FS(UserTxBufferFS, 2);
 		return (USBD_OK);
 
+//--------------------------------------------------------------------------
 	// DA:4095
 	} else if (cmd == 0x02) {
 		if (*Len >= 3) {
@@ -340,9 +343,11 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 			resValTIM4_PB6(); // обнуление переменной для проведения калиброки
 			memcpy(&tVal16, Buf + 1, sizeof(tVal16));
 			SetDacA(tVal16);
+
 			printf("DacA: %d\n", tVal16);
 			UserTxBufferFS[0] = cmd;
 			UserTxBufferFS[1] = 0x00;	// успешно
+
 			CDC_Transmit_FS(UserTxBufferFS, 2);
 			return (USBD_OK);
 		}
@@ -351,7 +356,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 		UserTxBufferFS[1] = 0x01;		// ошибка
 		CDC_Transmit_FS(UserTxBufferFS, 2);
 		return (USBD_OK);
-
+//--------------------------------------------------------------------------
 	// DB:4095
 	} else if (cmd == 0x03) {
 		if (*Len >= 3) {
@@ -364,7 +369,6 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 			UserTxBufferFS[1] = 0x00;	// успешно
 
 			printf("DacB: %d \n",tVal16);
-			printf("DacB_V: %d \n",tVal16);
 
 
 			CDC_Transmit_FS(UserTxBufferFS, 2);
@@ -375,7 +379,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 		UserTxBufferFS[1] = 0x01;		// ошибка
 		CDC_Transmit_FS(UserTxBufferFS, 2);
 		return (USBD_OK);
-
+//--------------------------------------------------------------------------
 	// ADC?
 	} else if (cmd == 0x04) {
 		tVal16 = GetADC();
@@ -383,7 +387,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 		memcpy(UserTxBufferFS + 1, &tVal16, sizeof(tVal16));
 		CDC_Transmit_FS(UserTxBufferFS, 3);
 		return (USBD_OK);
-
+//--------------------------------------------------------------------------
 	// Relay?DA?DB?
 	} else if (cmd == 0x05) {
 		UserTxBufferFS[0] = cmd;
@@ -397,7 +401,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 
 		CDC_Transmit_FS(UserTxBufferFS, 6);
 		return (USBD_OK);
-
+//--------------------------------------------------------------------------
 	// Btn?
 	} else if (cmd == 0x06) {
 		UserTxBufferFS[0] = cmd;
@@ -410,12 +414,13 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	// ID? 
 	} else if (cmd == 0x07) {
 		char str[] = "prb_v0.3";
+
 		UserTxBufferFS[0] = cmd;
 		UserTxBufferFS[1] = strlen(str);
 		memcpy(UserTxBufferFS + 2, str, strlen(str));
 		CDC_Transmit_FS(UserTxBufferFS, strlen(str) + 2);
 		return (USBD_OK);
-
+//--------------------------------------------------------------------------
 	// Калибровка
 	/* TODO: изменить описание калиброки относительно измерения длительности
 	 * Одна итерация: на входе щупа устанавливается заданное напряжение.
@@ -451,164 +456,8 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 		CDC_Transmit_FS(UserTxBufferFS, 1 + sizeof(uint16_t));
 		return (USBD_OK);
 	}
-#endif	/* HEX_MODE */
 
-#if KOSTIK_MODE
-	char tmp[32];
-	char *pos = NULL;
-
-	// Relay:1
-	pos = strstr((const char*) Buf, "Relay:");
-	if (pos != NULL) {
-		if (*Len >= 7 && (Buf[6] == '1' || Buf[6] == '0')) {
-			if (Buf[6] == '1') {
-				HAL_GPIO_WritePin(Reley_GPIO_Port, Reley_Pin, GPIO_PIN_SET);
-				RelayState = 0x01;
-
-				memcpy(UserTxBufferFS, Buf, *Len);
-				memcpy(UserTxBufferFS + (*Len), " OK", 3);
-				UserTxBufferFS[*Len + 3]	= 0x00;
-				CDC_Transmit_FS(UserTxBufferFS, *Len + 3);
-				return (USBD_OK);
-
-			} else if (Buf[6] == '0') {
-				HAL_GPIO_WritePin(Reley_GPIO_Port, Reley_Pin, GPIO_PIN_RESET);
-				RelayState = 0x00;
-
-				memcpy(UserTxBufferFS, Buf, *Len);
-				memcpy(UserTxBufferFS + (*Len), " OK", 3);
-				UserTxBufferFS[*Len + 3]	= 0x00;
-				CDC_Transmit_FS(UserTxBufferFS, *Len + 3);
-				return (USBD_OK);
-			}
-		}
-	}
-
-	// DA:4095
-	pos = strstr((const char*) Buf, "DA:");
-	if (pos != NULL) {
-		if (*Len >= 4 && *Len <= 7) {
-			memcpy(tmp, Buf + 3, *Len - 3);
-			tmp[*Len - 3] = 0x00;
-			SetDacA(atoi(tmp));
-
-			memcpy(UserTxBufferFS, Buf, *Len);
-			memcpy(UserTxBufferFS + (*Len), " OK", 3);
-			UserTxBufferFS[*Len + 3]	= 0x00;
-			CDC_Transmit_FS(UserTxBufferFS, *Len + 3);
-			return (USBD_OK);
-		}
-	}
-
-	// DB:4095
-	pos = strstr((const char*) Buf, "DB:");
-	if (pos != NULL) {
-		if (*Len >= 4 && *Len <= 7) {
-			memcpy(tmp, Buf + 3, *Len - 3);
-			tmp[*Len - 3] = 0x00;
-			SetDacB(atoi(tmp));
-
-			memcpy(UserTxBufferFS, Buf, *Len);
-			memcpy(UserTxBufferFS + (*Len), " OK", 3);
-			UserTxBufferFS[*Len + 3]	= 0x00;
-			CDC_Transmit_FS(UserTxBufferFS, *Len + 3);
-			return (USBD_OK);
-		}
-	}
-//	 ADC:1
-	pos = strstr((const char*) Buf, "ADC?");
-	if (pos != NULL) {
-		memcpy(UserTxBufferFS, Buf, *Len);
-		uint16_t adc = GetADC();
-		memset(tmp, 0x00, 32);
-		utoa(adc, tmp, 10);
-		int sl = strlen(tmp);
-		memcpy(UserTxBufferFS + (*Len), tmp, sl);
-		UserTxBufferFS[*Len + sl] = 0x00;
-		CDC_Transmit_FS(UserTxBufferFS, *Len + sl);
-		return (USBD_OK);
-	}
-////	 ADC:W/S -- While / Stop
-////	pos = strstr((const char*) Buf, "Relay:");
-//	pos = strstr((const char*) Buf, "ADC:");
-//	if (pos != NULL) {
-//		if (*Len >= 5 && (Buf[4] == 'W' || Buf[4] == 'S')) {
-//			if (Buf[4] == 'W') {
-//				g_ADC_while = 1;
-//
-//				memcpy(UserTxBufferFS, Buf, *Len);
-//				memcpy(UserTxBufferFS + (*Len), " OK ", 4);
-//				UserTxBufferFS[*Len + 4]	= 0x00;
-//				CDC_Transmit_FS(UserTxBufferFS, *Len + 4);
-//				return (USBD_OK);
-//
-//			} else if (Buf[4] == 'S') {
-//				g_ADC_while = 0;
-//
-//				memcpy(UserTxBufferFS, Buf, *Len);
-//				memcpy(UserTxBufferFS + (*Len), " OK ", 4);
-//				UserTxBufferFS[*Len + 4]	= 0x00;
-//				CDC_Transmit_FS(UserTxBufferFS, *Len + 4);
-//				return (USBD_OK);
-//			}
-//		}
-//	}
-//////	 ADC:W/S -- While / Stop
-////	pos = strstr((const char*) Buf, "ADC:W");
-////	if (pos != NULL) {
-////		memcpy(UserTxBufferFS, Buf, *Len);
-////		g_ADC_while = 1;
-////		memcpy(UserTxBufferFS, Buf, *Len);
-////		memcpy(UserTxBufferFS + (*Len), " OK ", 4);
-////		UserTxBufferFS[*Len + 4]	= 0x00;
-////		CDC_Transmit_FS(UserTxBufferFS, *Len + 4);
-////		return (USBD_OK);
-////	}
-
-//-------------------------------------------------------
-
-	// Relay?
-	pos = strstr((const char*) Buf, "Relay?");
-	if (pos != NULL) {
-		memcpy(UserTxBufferFS, Buf, *Len);
-		memcpy(UserTxBufferFS + (*Len), (RelayState == 0x00 ? " 0" : " 1"), 2);
-		UserTxBufferFS[*Len + 2] = 0x00;
-		CDC_Transmit_FS(UserTxBufferFS, *Len + 2);
-		return (USBD_OK);
-	}
-
-	// DA?
-	pos = strstr((const char*) Buf, "DA?");
-	if (pos != NULL) {
-		memcpy(UserTxBufferFS, Buf, *Len);
-		uint16_t da	= GetDacA();
-		memset(tmp, 0x00, 32);
-		utoa(da, tmp, 10);
-		int sl	= strlen(tmp);
-		memcpy(UserTxBufferFS + (*Len), tmp, sl);
-		UserTxBufferFS[*Len + sl] = 0x00;
-		CDC_Transmit_FS(UserTxBufferFS, *Len + sl);
-		return (USBD_OK);
-	}
-
-	// DB?
-	pos = strstr((const char*) Buf, "DB?");
-	if (pos != NULL) {
-		memcpy(UserTxBufferFS, Buf, *Len);
-		uint16_t db = GetDacB();
-		memset(tmp, 0x00, 32);
-		utoa(db, tmp, 10);
-		int sl	= strlen(tmp);
-		memcpy(UserTxBufferFS + (*Len), tmp, sl);
-		UserTxBufferFS[*Len + sl] = 0x00;
-		CDC_Transmit_FS(UserTxBufferFS, *Len + sl);
-		return (USBD_OK);
-	}
-
-	UserTxBufferFS[0] = cmd;
-	UserTxBufferFS[1] = 0x02;	// неизвестная команда
-	CDC_Transmit_FS(UserTxBufferFS, 2);
-#endif	/* KOSTIK_MODE */
+//--------------------------------------------------------------------------
 	return (USBD_OK);
   /* USER CODE END 6 */
 }

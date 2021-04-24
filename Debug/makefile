@@ -1,5 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
+# Toolchain: GNU Tools for STM32 (9-2020-q2-update)
 ################################################################################
 
 -include ../makefile.init
@@ -19,12 +20,29 @@ RM := rm -rf
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(strip $(S_DEPS)),)
+-include $(S_DEPS)
+endif
+ifneq ($(strip $(S_UPPER_DEPS)),)
+-include $(S_UPPER_DEPS)
+endif
 ifneq ($(strip $(C_DEPS)),)
 -include $(C_DEPS)
 endif
 endif
 
 -include ../makefile.defs
+
+OPTIONAL_TOOL_DEPS := \
+$(wildcard ../makefile.defs) \
+$(wildcard ../makefile.init) \
+$(wildcard ../makefile.targets) \
+
+
+BUILD_ARTIFACT_NAME := Probe_LA_v5_calibrate_table
+BUILD_ARTIFACT_EXTENSION := elf
+BUILD_ARTIFACT_PREFIX := 
+BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME).$(BUILD_ARTIFACT_EXTENSION)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
@@ -41,25 +59,28 @@ Probe_LA_v5_calibrate_table.bin \
 
 
 # All Target
-all: Probe_LA_v5_calibrate_table.elf secondary-outputs
+all: main-build
+
+# Main-build Target
+main-build: Probe_LA_v5_calibrate_table.elf secondary-outputs
 
 # Tool invocations
-Probe_LA_v5_calibrate_table.elf: $(OBJS) $(USER_OBJS) C:\Users\kozlov\STM32CubeIDE\workspace_1.2.0\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld
-	arm-none-eabi-gcc -o "Probe_LA_v5_calibrate_table.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\kozlov\STM32CubeIDE\workspace_1.2.0\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Probe_LA_v5_calibrate_table.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Probe_LA_v5_calibrate_table.elf: $(OBJS) $(USER_OBJS) C:\Users\kozlov\STM32CubeIDE\workspace\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Probe_LA_v5_calibrate_table.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"C:\Users\kozlov\STM32CubeIDE\workspace\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Probe_LA_v5_calibrate_table.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-default.size.stdout: $(EXECUTABLES)
+default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	arm-none-eabi-size  $(EXECUTABLES)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-Probe_LA_v5_calibrate_table.list: $(EXECUTABLES)
+Probe_LA_v5_calibrate_table.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Probe_LA_v5_calibrate_table.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-Probe_LA_v5_calibrate_table.bin: $(EXECUTABLES)
+Probe_LA_v5_calibrate_table.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "Probe_LA_v5_calibrate_table.bin"
 	@echo 'Finished building: $@'
 	@echo ' '
@@ -71,7 +92,14 @@ clean:
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_BIN)
 
-.PHONY: all clean dependents
+fail-specified-linker-script-missing:
+	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'
+	@exit 2
+
+warn-no-linker-script-specified:
+	@echo 'Warning: No linker script specified. Check the linker settings in the build configuration.'
+
+.PHONY: all clean dependents fail-specified-linker-script-missing warn-no-linker-script-specified
 .SECONDARY:
 
 -include ../makefile.targets

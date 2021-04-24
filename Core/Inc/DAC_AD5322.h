@@ -36,7 +36,9 @@
 #define AD5312_DIN_Pin			GPIO_PIN_7
 #define AD5312_DIN_GPIO_Port	GPIOA
 
+
 // Прототипы функций
+void DAC_AD5322_Init(SPI_HandleTypeDef *pSPI);
 void DAC_AD5322_Ch1(SPI_HandleTypeDef *pSPI, uint16_t data_ch1);	// Инициализация цифро-аналогового преобразователя
 void DAC_AD5322_Ch2(SPI_HandleTypeDef *pSPI, uint16_t data_ch2);	// Инициализация цифро-аналогового преобразователя
 void DAC_AD5322_Ch1Ch2(SPI_HandleTypeDef *pSPI, uint16_t data_ch1, uint16_t data_ch2);

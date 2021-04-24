@@ -24,6 +24,20 @@ __STATIC_INLINE void delay_us(uint32_t us)
 	DWT->CYCCNT = 0U;
 	while(DWT->CYCCNT < us_count_tic);
 }
+//--------------------------------------------------------------------------
+// SWO
+
+//#include "stdio.h"
+//
+//int _write(int32_t file, uint8_t *ptr, int32_t len)
+//{
+//	for (int i = 0; i < len; i++)
+//	{
+//		ITM_SendChar(*ptr++);
+//	}
+//	return len;
+//}
+
 
 #ifdef __cplusplus
 }

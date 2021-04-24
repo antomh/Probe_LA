@@ -7,8 +7,8 @@ dacValB_m27=[]
 
 table = {'V12': [], 'V27': []}
 
-input_path = "C:/Users/kozlov/STM32CubeIDE/workspace_1.2.0/Probe_LA_v5_calibrate_table/table/logic_calibration_table.txt"
-output_path = "C:/Users/kozlov/STM32CubeIDE/workspace_1.2.0/Probe_LA_v5_calibrate_table/table/logic_calibration_table.c"
+input_path = "C:/Users/kozlov/STM32CubeIDE/workspace/Probe_LA_v5_calibrate_table/table/logic_calibration_table.txt"
+output_path = "C:/Users/kozlov/STM32CubeIDE/workspace/Probe_LA_v5_calibrate_table/table/logic_calibration_table.c"
 
 with open(input_path) as f:
     key = ''
@@ -101,20 +101,36 @@ f.write("     Очистка даты и запись дефолтных зна�
 
 
 for item in list(range(len(dacValA_m12))):
-    f.write("     DevNVRAM.calibration_table." + "dacValA_m12["+str(item)+"] = "+"%s;\n" % hex(dacValA_m12[item]))
+    f.write("     DevNVRAM.calibration_table." + "dacValA_m12["+str(item)+"] = "+"%s;\n" % hex(item))
 f.write("\n")
 
 for item in list(range(len(dacValB_m12))):
-    f.write("     DevNVRAM.calibration_table." + "dacValB_m12["+str(item)+"] = "+"%s;\n" % hex(dacValB_m12[item]))
+    f.write("     DevNVRAM.calibration_table." + "dacValB_m12["+str(item)+"] = "+"%s;\n" % hex(item))
 f.write("\n")
 
 for item in list(range(len(dacValA_m27))):
-    f.write("     DevNVRAM.calibration_table." + "dacValA_m27["+str(item)+"] = "+"%s;\n" % hex(dacValA_m27[item]))
-f.write("\n")
+    f.write("     DevNVRAM.calibration_table." + "dacValA_m27["+str(item)+"] = "+"%s;\n" % hex(item))
 
 for item in list(range(len(dacValB_m27))):
-    f.write("     DevNVRAM.calibration_table." + "dacValB_m27["+str(item)+"] = "+"%s;\n" % hex(dacValB_m27[item]))
+    f.write("     DevNVRAM.calibration_table." + "dacValB_m27["+str(item)+"] = "+"%s;\n" % hex(item))
 f.write("\n")
+
+
+# for item in list(range(len(dacValA_m12))):
+#     f.write("     DevNVRAM.calibration_table." + "dacValA_m12["+str(item)+"] = "+"%s;\n" % hex(dacValA_m12[item]))
+# f.write("\n")
+
+# for item in list(range(len(dacValB_m12))):
+#     f.write("     DevNVRAM.calibration_table." + "dacValB_m12["+str(item)+"] = "+"%s;\n" % hex(dacValB_m12[item]))
+# f.write("\n")
+
+# for item in list(range(len(dacValA_m27))):
+#     f.write("     DevNVRAM.calibration_table." + "dacValA_m27["+str(item)+"] = "+"%s;\n" % hex(dacValA_m27[item]))
+# f.write("\n")
+
+# for item in list(range(len(dacValB_m27))):
+#     f.write("     DevNVRAM.calibration_table." + "dacValB_m27["+str(item)+"] = "+"%s;\n" % hex(dacValB_m27[item]))
+# f.write("\n")
 
 
 f.write(" }"+EOF)

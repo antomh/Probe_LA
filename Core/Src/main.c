@@ -17,127 +17,77 @@
   ******************************************************************************
   */
 /* USER CODE END Header */
-
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "usb_device.h"
-//#include "logic_calibration_table.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
 #include "DAC_AD5322.h"
 #include "usbd_cdc_if.h"
-#include "string.h" // это для функции strlen()
+#include "string.h" // для функции strlen()
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-char UARTtrans_str[64] = {0,};
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+//--------------------------------------------------------------------------
 // Тестовые сборки
-
 #define DEBUG_SWO				1
-#define TEST_RELAY_BKP			0
-#define TEST_DAC 				0
-#define TEST_DAC_WHILE 			1
-#define TEST_GPIO_WHILE			1
-#define TEST_ADC 				1
-#define TEST_CALIBRATION_WHILE	0
-#define TEST_CALIBRATION_HL		0
-#define TEST_CALIBRATION_LL		0
+#define TEST_UID				1
+
+
+#define TEST_DAC 				1
+#define TEST_READ_BTN			1 //TODO: данная реализация плохо отрабатывает!
 #define TEST_TIM_CAPTURE		1
+#define TEST_ADC 				1
+#define USB_RESET				0
+#define DWT_INIT				1
 
+#define TEST_FLASH_TABLE		1
 
-
-
-//#define DWT_CONTROL *(volatile unsigned long *)0xE0001000
-//#define SCB_DEMCR 	*(volatile unsigned long *)0xE000EDFC
-
-
+//--------------------------------------------------------------------------
+//DONE: 1. В цикле не прерывно идет установка цапов! Формируя цифровой шум DONE: убарно из цикла
+//DONE: 2. Ошибка в работе цап. При переключение в m27 цап принимает значения, но не устанавливет их! DONE: добавлена в библеотеку цап двоойна отправка команды, проблема устранена
+//DONE: set 4v-> set 5v -> M27 -> set 4v -> M12 -> set 6v (err:DAC не установил значения, но в ядре значения имеются!!!) DONE: изза ошибки 3. = добалена функция отправки значений при устанвоке реле
+//DONE: 3. Доработать алгоритм установки реле! м.б. добавить в функции реле установку ЦАП по обоим каналам?
+//TODO: Перенос проекта с сохранением во флеш в этот проект.
+//TODO: 4. Добавить серийный номер в щуп
+//TODO: 5. Добавить калибровочную таблицу
+//TODO: 6. Реализовать процедуру изменения калибровочной таблицы через VCP!
+//TODO: 7.роверить первое состоянеи первоначальное состояние реле 27V
+//--------------------------------------------------------------------------
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+
 
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 
+CRC_HandleTypeDef hcrc;
+
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
-UART_HandleTypeDef huart3;
-
 /* USER CODE BEGIN PV */
 //--------------------------------------------------------------------------
-uint16_t VDAC_A	= 2154;
-uint16_t VDAC_B	= 2154;
+#if USB_RESET
+void USB_Reset(); не работает без использвоания транзистора на D+
+#endif	/* USB_RESET */
 //--------------------------------------------------------------------------
-#if TEST_ADC
-volatile uint16_t g_VADC = 0;
-char trans_str[64] = { 0, };
-#endif	/* TEST_ADC */
-//--------------------------------------------------------------------------
-#define KEY_LONG_DELAY	1000
-//PB12
-uint8_t short_state1 	= 0;
-uint8_t long_state1	 	= 0;
-uint32_t time_key1		= 0;
-
-uint8_t btn1_long_rd 	= 0;
-uint8_t btn1_short_rd	= 0;
-
-//PB13
-uint8_t short_state2 	= 0;
-uint8_t long_state2	 	= 0;
-uint32_t time_key2	 	= 0;
-
-uint8_t btn2_long_rd 	= 0;
-uint8_t btn2_short_rd 	= 0;
-
-//PB14
-uint8_t short_state3 	= 0;
-uint8_t long_state3  	= 0;
-uint32_t time_key3 	 	= 0;
-
-uint8_t btn3_long_rd 	= 0;
-uint8_t btn3_short_rd 	= 0;
-
-// PB8 - inHL
-
-uint8_t flag_key1_press = 1;
-uint32_t time_key1_press= 0;
-
-uint8_t inHL_rd 		= 0;
-
-// PB9 - inLL
-
-uint8_t flag_key2_press = 1;
-uint32_t time_key2_press= 0;
-
-uint8_t inLL_rd 		= 0;
-
-#if TEST_TIM_CAPTURE
-
-volatile uint8_t timWork = 0;
-
-volatile uint8_t count_overflowTIM3 = 0;
-volatile uint8_t count_overflowTIM4 = 0;
-
-volatile uint16_t g_vTIM3_PB4 = 0;
-volatile uint16_t g_vTIM4_PB6 = 0;
-
-
-char trans2_str[64] = {0,};
-#endif	/* TEST_TIM_CAPTURE */
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -147,52 +97,79 @@ static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
-static void MX_USART3_UART_Init(void);
+static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
+//**************************************************************************
+#if DEBUG_SWO
+int _write(int32_t file, uint8_t *ptr, int32_t len) {
+	for (int i = 0; i < len; i++) {
+		ITM_SendChar(*ptr++);
+	}
+	return len;
+}
+
+#endif	/* DEBUG_SWO */
+//**************************************************************************
+#if  TEST_UID
+// Чтение UID контроллера
+//#define UID_BASE 0x1FFFF7E8
+uint16_t *idBase0 = (uint16_t*) (UID_BASE);
+uint16_t *idBase1 = (uint16_t*) (UID_BASE + 0x02);
+uint32_t *idBase2 = (uint32_t*) (UID_BASE + 0x04);
+uint32_t *idBase3 = (uint32_t*) (UID_BASE + 0x08);
+char buffer[64] = { 0, };
+#endif	/* TEST_UID */
+//**************************************************************************
+#if  TEST_DAC
+
+uint16_t VDAC_A = 2154;
+uint16_t VDAC_B = 2154;
 
 void SetDacA(uint16_t da) {
-	VDAC_A	= da;
+	VDAC_A = da;
 	DAC_AD5322_Ch1(&hspi1, VDAC_A);
 }
-
 void SetDacB(uint16_t db) {
-	VDAC_B	= db;
+	VDAC_B = db;
 	DAC_AD5322_Ch2(&hspi1, VDAC_B);
 }
-
+void SetAllDAC() {
+	DAC_AD5322_Ch1Ch2(&hspi1,VDAC_A,VDAC_B);
+}
 uint16_t GetDacA() {
 	return VDAC_A;
 }
-
 uint16_t GetDacB() {
 	return VDAC_B;
-
 }
+#endif	/* TEST_DAC */
+//**************************************************************************
+#if  TEST_READ_BTN
+#define KEY_LONG_DELAY	1000
+//PB12
+uint8_t short_state1 = 0;
+uint8_t long_state1 = 0;
+uint32_t time_key1 = 0;
 
+uint8_t btn1_long_rd = 0;
+uint8_t btn1_short_rd = 0;
+
+//PB13
+uint8_t short_state2 = 0;
+uint8_t long_state2 = 0;
+uint32_t time_key2 = 0;
+
+uint8_t btn2_long_rd = 0;
+uint8_t btn2_short_rd = 0;
+
+//PB14
+uint8_t short_state3 = 0;
+uint8_t long_state3 = 0;
+uint32_t time_key3 = 0;
+
+uint8_t btn3_long_rd = 0;
+uint8_t btn3_short_rd = 0;
 //--------------------------------------------------------------------------
-
-//struct s_Calibration_table{
-//	uint16_t length = 570;
-//	uint16_t Index = 0;
-//
-//	uint16_t volt_val[length];
-//	uint16_t dac_val[length];
-//};
-
-//--------------------------------------------------------------------------
-
-//--------------------------------------------------------------------------
-// Чтение ID контроллера
-//#define UID_BASE 0x1FFFF7E8
-uint16_t *idBase0 = (uint16_t*)(UID_BASE);
-uint16_t *idBase1 = (uint16_t*)(UID_BASE + 0x02);
-uint32_t *idBase2 = (uint32_t*)(UID_BASE + 0x04);
-uint32_t *idBase3 = (uint32_t*)(UID_BASE + 0x08);
-
-char buffer[64] = {0,};
-//-----------------------------------------------------------------------------
-
-
 uint8_t GetBtnRunState() {
 	// 0x00 - не нажата; 0x01 - короткое нажатие; 0x02 - длительное нажатие
 	if (btn1_short_rd == 0x00 && btn1_long_rd == 0x00) {
@@ -219,7 +196,7 @@ uint8_t GetBtnRunState() {
 //	if (short_state1 == 0x00 && long_state1 == 0x01)	return 0x02;
 	return 0x00;
 }
-
+//--------------------------------------------------------------------------
 uint8_t GetBtnUpState() {
 	// 0x00 - не нажата; 0x01 - короткое нажатие; 0x02 - длительное нажатие
 	if (btn2_short_rd == 0x00 && btn2_long_rd == 0x00) {
@@ -246,7 +223,7 @@ uint8_t GetBtnUpState() {
 //	if (short_state2 == 0x00 && long_state2 == 0x01)	return 0x02;
 	return 0x00;
 }
-
+//--------------------------------------------------------------------------
 uint8_t GetBtnDownState() {
 	// 0x00 - не нажата; 0x01 - короткое нажатие; 0x02 - длительное нажатие
 	if (btn3_short_rd == 0x00 && btn3_long_rd == 0x00) {
@@ -274,60 +251,94 @@ uint8_t GetBtnDownState() {
 }
 //--------------------------------------------------------------------------
 
-/*	Калибровка:
- * Одна итерация: на входе щупа устанавливается заданное напряжение.
- * Начинаем менять входные коды ЦАП верхнего и нижнего уровня до того момента пока на выходах компараторов не появится 1.
- * Т.е. каждый раз когда мы меняем входной код - мы запрашиваем контроллер щупа о состоянии выходов компаратора.
- */
-uint8_t GetInHL(){
-	return  inHL_rd;
-};
+#endif	/* TEST_READ_BTN */
+//**************************************************************************
+#if  TEST_TIM_CAPTURE
+volatile uint8_t timWork = 0;
+volatile uint8_t count_overflowTIM3 = 0;
+volatile uint8_t count_overflowTIM4 = 0;
 
-uint8_t GetInLL(){
-	return  inLL_rd;
-};
+volatile uint16_t g_vTIM3_PB4 = 0;
+volatile uint16_t g_vTIM4_PB6 = 0;
 
+char trans2_str[64] = {0,};
 //--------------------------------------------------------------------------
-
 void EnableTIM3_PB4(){
 	 timWork = 1 ;
 }
-//--------------------------------------------------------------------------
-
-void EnableTIM4_PB6(){
-	 timWork = 0 ;
-}
-//--------------------------------------------------------------------------
-
 uint16_t GetTIM3(){
 	return g_vTIM3_PB4;
 }
-//--------------------------------------------------------------------------
 void resValTIM3_PB4(){
 	g_vTIM3_PB4 = 0;
 }
-
-
 //--------------------------------------------------------------------------
+void EnableTIM4_PB6(){
+	 timWork = 0 ;
+}
 uint16_t GetTIM4(){
 	return g_vTIM4_PB6;
 }
-//--------------------------------------------------------------------------
 void resValTIM4_PB6(){
 	g_vTIM4_PB6 = 0;
 }
 //--------------------------------------------------------------------------
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
+	uint16_t periodTIM3, pulseWidthTIM3, periodTIM4, pulseWidthTIM4;
 
-uint16_t GetADC(){
-	return g_VADC;
+	if (timWork) {
+		if (htim->Instance == TIM3) {
+			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
+				periodTIM3 = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_1);
+				pulseWidthTIM3 = HAL_TIM_ReadCapturedValue(&htim3,
+						TIM_CHANNEL_2);
+
+				TIM3->CNT = 0;
+
+				int16_t deltaTIM3 = (int16_t) periodTIM3
+						- (int16_t) pulseWidthTIM3;
+				deltaTIM3 = (deltaTIM3 < 0) ? (-1 * deltaTIM3) : deltaTIM3;
+				g_vTIM3_PB4 = deltaTIM3;
+
+			}
+		}
+	} else {
+		if (htim->Instance == TIM4) {
+			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
+				periodTIM4 = HAL_TIM_ReadCapturedValue(&htim4, TIM_CHANNEL_1);
+				pulseWidthTIM4 = HAL_TIM_ReadCapturedValue(&htim4,
+						TIM_CHANNEL_2);
+
+				TIM4->CNT = 0;
+
+				int16_t deltaTIM4 = (int16_t) periodTIM4
+						- (int16_t) pulseWidthTIM4;
+				deltaTIM4 = (deltaTIM4 < 0) ? (-1 * deltaTIM4) : deltaTIM4;
+				g_vTIM4_PB6 = deltaTIM4;
+
+			}
+		}
+	}
+
 }
-//--------------------------------------------------------------------------
+
+
+
+#endif	/* TEST_TIM_CAPTURE */
+//**************************************************************************
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+//**************************************************************************
+#if TEST_ADC
+volatile uint16_t g_VADC = 0;
 
+uint16_t GetADC(){
+	return g_VADC;
+}
+//--------------------------------------------------------------------------
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
     if(hadc->Instance == ADC1) 				//check if the interrupt comes from ACD1
@@ -335,92 +346,35 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
     	g_VADC = HAL_ADC_GetValue(&hadc1); // глобальная переменна g_VADC вычитывается
     }
 }
-//--------------------------------------------------------------------------
+#endif	/* TEST_ADC */
+//**************************************************************************
+#if USB_RESET
+void USB_RESET(void){
 
+    /* GPIO Ports Clock Enable */
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
 
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
-	uint16_t periodTIM3,pulseWidthTIM3,periodTIM4,pulseWidthTIM4;
+    // reset USB DP (D+)
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-	if (timWork){
-		if (htim->Instance == TIM3)
-		    {
-		        if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
-		        {
-		        	periodTIM3 = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_1);
-		        	pulseWidthTIM3 = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_2);
+    // инициализируем пин DP как выход
+    GPIO_InitStruct.Pin = GPIO_PIN_12;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET); // прижимаем DP к "земле"
+    for(uint16_t i = 0; i < 10000; i++) {}; // немного ждём
 
-		            TIM3->CNT = 0;
+    // переинициализируем пин для работы с USB
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    for(uint16_t i = 0; i < 10000; i++) {}; // немного ждём
 
-		            int16_t deltaTIM3 = (int16_t)periodTIM3 - (int16_t)pulseWidthTIM3;
-		            deltaTIM3	= (deltaTIM3 < 0) ? (-1 * deltaTIM3) : deltaTIM3;
-		            g_vTIM3_PB4 = deltaTIM3;
-
-		        }
-		    }
-	}else{
-		 if (htim->Instance == TIM4)
-		    {
-		        if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
-		        {
-		        	periodTIM4 = HAL_TIM_ReadCapturedValue(&htim4, TIM_CHANNEL_1);
-		        	pulseWidthTIM4 = HAL_TIM_ReadCapturedValue(&htim4, TIM_CHANNEL_2);
-
-		            TIM4->CNT = 0;
-
-		            int16_t deltaTIM4 = (int16_t)periodTIM4 - (int16_t)pulseWidthTIM4;
-		            deltaTIM4	= (deltaTIM4 < 0) ? (-1 * deltaTIM4) : deltaTIM4;
-		            g_vTIM4_PB6 = deltaTIM4;
-
-		        }
-		    }
-	}
-
-
-
-}
-
-//--------------------------------------------------------------------------
-#if	 DEBUG_SWO
-int _write(int32_t file, uint8_t *ptr, int32_t len)
-{
-	for (int i = 0; i < len; i++)
-	{
-		ITM_SendChar(*ptr++);
-	}
-	return len;
-}
-//--------------------------------------------------------------------------
-
-#endif	/* DEBUG_SWO */
-
-
-//--------------------------------------------------------------------------
-
-
-//
-//void DWT_Init(void)
-//{
-//    SCB_DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // разрешаем использовать счётчик
-//    DWT_CONTROL |= DWT_CTRL_CYCCNTENA_Msk;   // запускаем счётчик
-//}
-//
-///////////////////////////////////// delay_ms /////////////////////////////////////
-//void delay_ms(uint32_t ms)
-//{
-//    uint32_t ms_count_tic =  ms * (SystemCoreClock / 1000);
-//    DWT->CYCCNT = 0U; // обнуляем счётчик
-//    while(DWT->CYCCNT < ms_count_tic);
-//}
-//
-///////////////////////////////// delay_us variant 1 ///////////////////////////////
-//void delay_us(uint32_t us)
-//{
-//    uint32_t us_count_tic =  us * (SystemCoreClock / 1000000);
-//    DWT->CYCCNT = 0U; // обнуляем счётчик
-//    while(DWT->CYCCNT < us_count_tic);
-//}
-
+  }
+#endif	/* USB_RESET */
+//**************************************************************************
 /* USER CODE END 0 */
 
 /**
@@ -439,7 +393,15 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  DWT_Init();
+//--------------------------------------------------------------------------
+#if DWT_INIT
+	DWT_Init();
+#endif	/* DWT_INIT */
+//--------------------------------------------------------------------------
+
+//--------------------------------------------------------------------------
+
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -456,261 +418,300 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
-  MX_USART3_UART_Init();
+  MX_CRC_Init();
   /* USER CODE BEGIN 2 */
+  //**************************************************************************
+#if  TEST_UID
+	sprintf(buffer, "UID %x-%x-%lx-%lx\n", *idBase0, *idBase1, *idBase2, *idBase3);
+	printf((uint8_t*)buffer);
+#endif	/* TEST_UID */
 
+	//**************************************************************************
+#if	TEST_TIM_CAPTURE
+	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
+	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
+	HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
+	HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
+#endif	/* TEST_TIM_CAPTURE */
 //--------------------------------------------------------------------------
+#if	TEST_DAC
+	SetAllDAC();
+#endif	/* TEST_DAC */
+	//**************************************************************************
+#if	TEST_ADC
+	HAL_ADCEx_Calibration_Start(&hadc1);
+	HAL_ADC_Start_IT(&hadc1);
 
-//  s_Calibration_table s_table;
-//  s_table->
-
-
-+//--------------------------------------------------------------------------
-
-  sprintf(buffer, "UID %x-%x-%lx-%lx\n", *idBase0, *idBase1, *idBase2, *idBase3);
-  printf((uint8_t*)buffer);
-  
-//--------------------------------------------------------------------------
-#if TEST_ADC
-//ADC
-  HAL_ADCEx_Calibration_Start(&hadc1);
-  HAL_ADC_Start_IT(&hadc1);
 #endif	/* TEST_ADC */
+	//**************************************************************************
+#if  TEST_FLASH_TABLE
+	//--------------------------------------------------------------------------
+#define FLASH_TABLE_START_ADDR		ADDR_FLASH_PAGE_127
+#define FLASH_TABLE_STOP_ADDR		FLASH_TABLE_START_ADDR+FLASH_PAGE_SIZE
+	//--------------------------------------------------------------------------
+#define MAGIC_KEY_DEFINE			0x48151623
+#define HARDWIRE_DEFINE 			0x06
+#define FIRMWARE_DEFINE 			0x05
+#define SN_DEFINE 					0x1121001
+	//--------------------------------------------------------------------------
+#define MAX_VAL_M12 				88//	шаг 0,2В в диапозоне [-5:12:0,2] 85  TODO:найти что за 3 значения?!
+#define MAX_VAL_M27 				163//	шаг 0,2В в диапозоне [-30:30:0,2] 163*0.2= 32,6
+	//--------------------------------------------------------------------------
 
-  HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
-  HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
-  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
-  HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
+	typedef struct // 							4+4+4+176+176+326+326 = 1016 байт
+	{
+		uint16_t Hardwire; //					2 байта
+		uint16_t Firmware; //					2 байта
+		uint32_t SN; //							4 байта
+
+		uint32_t MagicNum; //0x4815162342		4 байта ==>4+4+2+2 = 12
+
+		uint16_t dacValA_m12[MAX_VAL_M12]; //	88*2 = 176 байта
+		uint16_t dacValB_m12[MAX_VAL_M12]; //	88*2 = 176 байта
+		uint16_t dacValA_m27[MAX_VAL_M27]; //	163*2 = 326 байта
+		uint16_t dacValB_m27[MAX_VAL_M27]; //	163*2 = 326 байта ==> 1004 + 12 = 1016
+
+	} Table_t;
+
+	struct FLASH_Sector {
+		uint32_t data[256 - 2]; // 	254* 4 = 1016 байта (1016 байт)
+		uint32_t NWrite; //			4 байта
+		uint32_t CheckSum; //		4 байта ==>1016 + 4 + 4 = 1024
+	};
+
+	union NVRAM {
+		Table_t calibration_table; //			1016 байт
+		struct FLASH_Sector sector; //			1024 байт
+
+		uint32_t data32[256]; // 			1024 байт
+		uint8_t data16[256 * 2]; // 		1024 байт
+		uint8_t data8[256 * 4]; // 			1024 байт
+	};
+	//										1024 байт
 
 //--------------------------------------------------------------------------
-#if TEST_RELAY_BKP
-  uint32_t volatile rdData = 0;
-  uint16_t reload_counter = 0;
+	union NVRAM DevNVRAM;
+//--------------------------------------------------------------------------
+	static FLASH_EraseInitTypeDef EraseInitStruct; // структура для очистки флеша
 
-  HAL_PWR_EnableBkUpAccess(); // для хранения состояния в памяти
+	EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES; // постраничная очистка, FLASH_TYPEERASE_MASSERASE - очистка всего флеша
+	EraseInitStruct.PageAddress = FLASH_TABLE_START_ADDR; // адрес 127-ой страницы
+	EraseInitStruct.NbPages = 0x01;               // кол-во страниц для стирания
+	//EraseInitStruct.Banks = FLASH_BANK_1; // FLASH_BANK_2 - банк №2, FLASH_BANK_BOTH - оба банка
+	//--------------------------------------------------------------------------
+	uint32_t l_Address;
+	uint32_t l_Error;
+	uint32_t l_Index;
+//--------------------------------------------------------------------------
+// Чтение DevNVRAM
+	l_Address = FLASH_TABLE_START_ADDR;
+	l_Error = 0;
+	l_Index = 0;
+	while (l_Address < FLASH_TABLE_STOP_ADDR) {
+		DevNVRAM.data32[l_Index] = *(__IO uint32_t*) l_Address;
+		l_Index = l_Index + 1;
+		l_Address = l_Address + 4;
+	}
+//--------------------------------------------------------------------------
+// если после чтения майджик кей не найден, то это первый запуск
 
-  reload_counter = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);//
-  reload_counter = !reload_counter;
-  HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR2, (uint32_t) reload_counter);
-	rdData = HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR2);
-	if (rdData == 0x01)
-		{
-			HAL_GPIO_WritePin(Reley_GPIO_Port, Reley_Pin, GPIO_PIN_SET);
-//			 VDAC_A = 1500;
-//			 VDAC_B = 1000;
+	if (DevNVRAM.calibration_table.MagicNum != MAGIC_KEY_DEFINE) {
+		// Подготовка
+		// Заносим типовые значения
+		memset(DevNVRAM.data32, 0, sizeof(DevNVRAM.data32));
+
+		// TODO: !!!!!Добавить математику расчета калибровочной таблицы!!!!!!!
+
+		for (uint8_t i = 0; i < MAX_VAL_M12; i++) {
+			DevNVRAM.calibration_table.dacValA_m12[i] = i;
 		}
-	if (rdData == 0x00)
-		{
-			HAL_GPIO_WritePin(Reley_GPIO_Port, Reley_Pin, GPIO_PIN_RESET);
-//			 VDAC_A = 1000;
-//			 VDAC_B = 1500;
+		for (uint8_t i = 0; i < MAX_VAL_M12; i++) {
+			DevNVRAM.calibration_table.dacValB_m12[i] = i;
 		}
-#endif	/* TEST_RELAY */
+		for (uint8_t i = 0; i < MAX_VAL_M27; i++) {
+			DevNVRAM.calibration_table.dacValA_m27[i] = i;
+		}
+		for (uint8_t i = 0; i < MAX_VAL_M27; i++) {
+			DevNVRAM.calibration_table.dacValB_m12[i] = i;
+		}
+		DevNVRAM.calibration_table.Hardwire = 0x06;
+		DevNVRAM.calibration_table.Firmware = 0x05;
+		DevNVRAM.calibration_table.SN 		= 0x1121001; //11 неделя + год + порядковый номер изготовления
+		DevNVRAM.calibration_table.MagicNum = MAGIC_KEY_DEFINE;
+
+		DevNVRAM.sector.NWrite = 0;
+		DevNVRAM.sector.CheckSum = HAL_CRC_Calculate(&hcrc,&DevNVRAM.calibration_table, sizeof(DevNVRAM));
 //--------------------------------------------------------------------------
 
+		l_Address = FLASH_TABLE_START_ADDR;
+		l_Error = 0;
+		l_Index = 0;
+
+		while (l_Address < FLASH_TABLE_STOP_ADDR) {
+			if (DevNVRAM.data32[l_Index] != *(__IO uint32_t*) l_Address) {
+				l_Error++;
+			}
+			l_Index = l_Index + 1;
+			l_Address = l_Address + 4;
+		}
+
+		if (l_Error > 0) { // конфигурация изменилась сохраняем
+			// Готовим к записи в память
+			HAL_FLASH_Unlock();
+			// Очищаем страницу памяти
+			HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
+			//Пишем данные в память
+			l_Address = FLASH_TABLE_START_ADDR;
+			l_Error = 0x00;
+			l_Index = 0x00;
+
+			while (l_Address < FLASH_TABLE_STOP_ADDR) {
+				if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
+						DevNVRAM.data32[l_Index]) != HAL_OK) {
+					l_Error++;
+				}
+
+				l_Address = l_Address + 4;
+				l_Index = l_Index + 1;
+				HAL_Delay(10);
+			}
+			HAL_FLASH_Lock();
+		}
+
+	}//если после чтения майджик кей не найден, то это первый запуск записываем дефолтную таблицу
+	// TODO: Надо по запросе какая версия калиброчной табцы высылать значения дефолтной таблице...
+//--------------------------------------------------------------------------
+// Запиcь калибровочной таблицы в память
+
+	// TODO: !!!!!Добавить математику расчета калибровочной таблицы!!!!!!!
+
+
+// Циклически проверяем соотвествует ли информация в памяти массиву настроек?
+
+	l_Address = FLASH_TABLE_START_ADDR;
+	l_Error = 0;
+	l_Index = 0;
+	//Читаем и сравниваем
+	while (l_Address < FLASH_TABLE_STOP_ADDR) {
+		if (DevNVRAM.data32[l_Index] != *(__IO uint32_t*) l_Address) {
+			l_Error++;
+		}
+		l_Index = l_Index + 1;
+		l_Address = l_Address + 4;
+	}
+
+	if (l_Error > 0) { // конфигурация изменилась сохраняем
+		// Готовим к записи в память
+		HAL_FLASH_Unlock();
+		// Очищаем страницу памяти
+		HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
+		//Пишем данные в память
+		l_Address = FLASH_TABLE_START_ADDR;
+		l_Error = 0x00;
+		l_Index = 0x00;
+
+		DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
+		DevNVRAM.sector.CheckSum = HAL_CRC_Calculate(&hcrc,&DevNVRAM.calibration_table,sizeof(DevNVRAM.calibration_table));
+
+		while (l_Address < FLASH_TABLE_STOP_ADDR) {
+			if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
+					DevNVRAM.data32[l_Index]) != HAL_OK) {
+				l_Error++;
+			}
+
+			l_Address = l_Address + 4;
+			l_Index = l_Index + 1;
+			HAL_Delay(10);
+		}
+		HAL_FLASH_Lock();
+	}
+//--------------------------------------------------------------------------
+
+
+
+
+#endif	/* TEST_FLASH_TABLE */
+//**************************************************************************
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
 
+//**************************************************************************
+#if  TEST_READ_BTN
+
+		uint32_t ms = HAL_GetTick();
+		uint8_t key1_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12); // подставить свой пин //TODO: Проверить работу BACK key!
+
+		if (key1_state == 0 && !short_state1 && (ms - time_key1) > 50) {
+			short_state1 = 1;
+			long_state1 = 0;
+			time_key1 = ms;
+		} else if (key1_state
+				== 0&& !long_state1 && (ms - time_key1) > KEY_LONG_DELAY) {
+			long_state1 = 1;
+			// действие на длинное нажатие
+			btn1_long_rd = 1;
+
+		} else if (key1_state == 1 && short_state1 && (ms - time_key1) > 50) {
+			short_state1 = 0;
+			time_key1 = ms;
+
+			if (!long_state1) {
+				// действие на короткое нажатие
+				btn1_short_rd = 1;
+			}
+		}
+		uint8_t key2_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13); // подставить свой пин
+
+		if (key2_state == 0 && !short_state2 && (ms - time_key2) > 50) {
+			short_state2 = 1;
+			long_state2 = 0;
+			time_key2 = ms;
+		} else if (key2_state
+				== 0&& !long_state2 && (ms - time_key2) > KEY_LONG_DELAY) {
+			long_state2 = 1;
+
+			// действие на длинное нажатие
+			btn2_long_rd = 1;
+		} else if (key2_state == 1 && short_state2 && (ms - time_key2) > 50) {
+			short_state2 = 0;
+			time_key2 = ms;
+
+			if (!long_state2) {
+				// действие на короткое нажатие
+				btn2_short_rd = 1;
+			}
+		}
+
+		uint8_t key3_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // подставить свой пин
+		if (key3_state == 0 && !short_state3 && (ms - time_key3) > 50) {
+			short_state3 = 1;
+			long_state3 = 0;
+			time_key3 = ms;
+		} else if (key3_state
+				== 0&& !long_state3 && (ms - time_key3) > KEY_LONG_DELAY) {
+			long_state3 = 1;
+			// действие на длинное нажатие
+			btn3_long_rd = 1;
+		} else if (key3_state == 1 && short_state3 && (ms - time_key3) > 50) {
+			short_state3 = 0;
+			time_key3 = ms;
+
+			if (!long_state3) {
+				// действие на короткое нажатие
+				btn3_short_rd = 1;
+			}
+		}
+
+#endif	/* TEST_READ_BTN */
+//**************************************************************************
+
 //--------------------------------------------------------------------------
-#if  TEST_DAC_WHILE
-
-	DAC_AD5322_Ch1(&hspi1, VDAC_A);
-	DAC_AD5322_Ch2(&hspi1, VDAC_B);
-	HAL_Delay(250);
-#endif	/* TEST_DAC_WHILE */
-//--------------------------------------------------------------------------
-#if  TEST_GPIO_WHILE
-
-		 uint32_t ms = HAL_GetTick();
-			  uint8_t key1_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12); // подставить свой пин
-
-			  if(key1_state == 0 && !short_state1 && (ms - time_key1) > 50)
-			  {
-			    short_state1 = 1;
-			    long_state1 = 0;
-			    time_key1 = ms;
-			  }
-			  else if(key1_state == 0 && !long_state1 && (ms - time_key1) > KEY_LONG_DELAY)
-			  {
-			    long_state1 = 1;
-			    // действие на длинное нажатие
-			    btn1_long_rd = 1;
-
-			  }
-			  else if(key1_state == 1 && short_state1 && (ms - time_key1) > 50)
-			  {
-			    short_state1 = 0;
-			    time_key1 = ms;
-
-			    if(!long_state1)
-			    {
-			      // действие на короткое нажатие
-			    	btn1_short_rd = 1;
-			    }
-			  }
-			  uint8_t key2_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13); // подставить свой пин
-
-			  if(key2_state == 0 && !short_state2 && (ms - time_key2) > 50)
-			  {
-			    short_state2 = 1;
-			    long_state2 = 0;
-			    time_key2 = ms;
-			  }
-			  else if(key2_state == 0 && !long_state2 && (ms - time_key2) > KEY_LONG_DELAY)
-			  {
-			    long_state2 = 1;
-
-			    // действие на длинное нажатие
-			    btn2_long_rd = 1;
-			  }
-			  else if(key2_state == 1 && short_state2 && (ms - time_key2) > 50)
-			  {
-			    short_state2 = 0;
-			    time_key2 = ms;
-
-			    if(!long_state2)
-			    {
-			      // действие на короткое нажатие
-			    	btn2_short_rd = 1;
-			    }
-			  }
-
-			  uint8_t key3_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // подставить свой пин
-			  if(key3_state == 0 && !short_state3 && (ms - time_key3) > 50)
-			  {
-			    short_state3 = 1;
-			    long_state3 = 0;
-			    time_key3 = ms;
-			  }
-			  else if(key3_state == 0 && !long_state3 && (ms - time_key3) > KEY_LONG_DELAY)
-			  {
-			    long_state3 = 1;
-			    // действие на длинное нажатие
-				 btn3_long_rd = 1;
-			  }
-			  else if(key3_state == 1 && short_state3 && (ms - time_key3) > 50)
-			  {
-			    short_state3 = 0;
-			    time_key3 = ms;
-
-			    if(!long_state3)
-			    {
-			      // действие на короткое нажатие
-			    	btn3_short_rd = 1;
-			    }
-			  }
 
 
-			  //--------------------------------------------------------------------------
-
-			  #if  TEST_CALIBRATION_HL
-
-
-			  // Чтение состояние компоратора inHL = 1
-			  uint8_t ReadPinHL_S = HAL_GPIO_ReadPin(inHL_GPIO_Port, inHL_Pin) == GPIO_PIN_SET;
-
-//			  if(HAL_GPIO_ReadPin(inHL_GPIO_Port, inHL_Pin) == GPIO_PIN_SET && flag_key1_press) // подставить свой пин
-			  if(ReadPinHL_S && flag_key1_press) // подставить свой пин
-			  {
-
-			    flag_key1_press = 0;
-
-			    // действие на нажатие
-			    inHL_rd 		= 0x01;
-
-
-			    time_key1_press = HAL_GetTick();
-			  }
-
-			  if(!flag_key1_press && (HAL_GetTick() - time_key1_press) > 150)
-			  {
-			    flag_key1_press = 1;
-			  }
-
-			  //--------------------------------------------------------------------------
-
-			  // Чтение состояние компоратора inHL = 0
-			  uint8_t ReadPinHL_R = HAL_GPIO_ReadPin(inHL_GPIO_Port, inHL_Pin) == GPIO_PIN_RESET;
-
-//			  if(HAL_GPIO_ReadPin(inHL_GPIO_Port, inHL_Pin) == GPIO_PIN_RESET && flag_key1_press) // подставить свой пин
-			  if(ReadPinHL_R && flag_key1_press) // подставить свой пин
-			  {
-
-			    flag_key1_press = 0;
-
-			    // действие на нажатие
-			    inHL_rd 		= 0x00;
-
-
-			    time_key1_press = HAL_GetTick();
-			  }
-
-			  if(!flag_key1_press && (HAL_GetTick() - time_key1_press) > 150)
-			  {
-			    flag_key1_press = 1;
-			  }
-		#endif	/* TEST_CALIBRATION_HL */
-
-		#if  TEST_CALIBRATION_LL
-			  // Чтение состояние компоратора inLL = 1
-			  uint8_t ReadPinLL_S = HAL_GPIO_ReadPin(inHL_GPIO_Port, inHL_Pin) == GPIO_PIN_SET;
-
-//			  if(HAL_GPIO_ReadPin(inLL_GPIO_Port, inLL_Pin) == GPIO_PIN_SET && flag_key2_press) // подставить свой пин
-			  if(ReadPinLL_S && flag_key2_press) // подставить свой пин
-			  {
-			    flag_key2_press = 0;
-
-			    // действие на нажатие
-			    inLL_rd 		= 0x01; //TODO: err read pin
-
-			    time_key2_press = HAL_GetTick();
-			    }
-
-
-			  uint32_t dTime = (HAL_GetTick() - time_key2_press);
-
-//			  if(!flag_key2_press && (HAL_GetTick() - time_key2_press) > 150)
-			  if(!flag_key2_press && dTime > 150)
-			  {
-			    flag_key2_press = 1; //TODO: НЕ устанавливается флаш! изза dTime!
-			  }
-			  //--------------------------------------------------------------------------
-
-			  // Чтение состояние компоратора inLL = 0
-			  uint8_t ReadPinLL_R = HAL_GPIO_ReadPin(inHL_GPIO_Port, inHL_Pin) == GPIO_PIN_RESET;
-
-//			  if(HAL_GPIO_ReadPin(inLL_GPIO_Port, inLL_Pin) == GPIO_PIN_RESET && flag_key2_press) // подставить свой пин
-			  if(ReadPinLL_R && flag_key2_press) // подставить свой пин
-			  {
-			    flag_key2_press = 0;
-
-			    // действие на нажатие
-			    inLL_rd 		= 0x00;
-
-
-			    time_key2_press = HAL_GetTick();
-			    }
-
-
-
-			  if(!flag_key2_press && dTime > 150)
-			  {
-			    flag_key2_press = 1; //TODO: НЕ устанавливается флаш! изза dTime!
-			  }
-
-#endif	/* TEST_CALIBRATION_LL */
-			  //--------------------------------------------------------------------------
-
-#endif	/* TEST_GPIO_WHILE */
-
-//	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
-//	delay_us(500); // длина импульса
-//	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-//	delay_us(500);
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
   }
@@ -727,7 +728,8 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
@@ -740,7 +742,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
@@ -779,7 +781,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 1 */
 
   /* USER CODE END ADC1_Init 1 */
-  /** Common config 
+  /** Common config
   */
   hadc1.Instance = ADC1;
   hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
@@ -792,7 +794,7 @@ static void MX_ADC1_Init(void)
   {
     Error_Handler();
   }
-  /** Configure Regular Channel 
+  /** Configure Regular Channel
   */
   sConfig.Channel = ADC_CHANNEL_3;
   sConfig.Rank = ADC_REGULAR_RANK_1;
@@ -804,6 +806,32 @@ static void MX_ADC1_Init(void)
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
+  * @brief CRC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_CRC_Init(void)
+{
+
+  /* USER CODE BEGIN CRC_Init 0 */
+
+  /* USER CODE END CRC_Init 0 */
+
+  /* USER CODE BEGIN CRC_Init 1 */
+
+  /* USER CODE END CRC_Init 1 */
+  hcrc.Instance = CRC;
+  if (HAL_CRC_Init(&hcrc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN CRC_Init 2 */
+
+  /* USER CODE END CRC_Init 2 */
 
 }
 
@@ -954,39 +982,6 @@ static void MX_TIM4_Init(void)
 }
 
 /**
-  * @brief USART3 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART3_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART3_Init 0 */
-
-  /* USER CODE END USART3_Init 0 */
-
-  /* USER CODE BEGIN USART3_Init 1 */
-
-  /* USER CODE END USART3_Init 1 */
-  huart3.Instance = USART3;
-  huart3.Init.BaudRate = 9600;
-  huart3.Init.WordLength = UART_WORDLENGTH_8B;
-  huart3.Init.StopBits = UART_STOPBITS_1;
-  huart3.Init.Parity = UART_PARITY_NONE;
-  huart3.Init.Mode = UART_MODE_TX_RX;
-  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart3) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART3_Init 2 */
-
-  /* USER CODE END USART3_Init 2 */
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -1040,6 +1035,28 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+#if USB_RESET
+// После перегенерации в Кубе добавить USB_Reset(); в функцию MX_GPIO_Init(void) (после ...CLK_ENABLE(); )
+void USB_Reset()// не работает без транзистора(
+{
+
+	 GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+	 // инициализируем пин DP как выход
+	 GPIO_InitStruct.Pin = GPIO_PIN_12;
+	 GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	 GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	 HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	 HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET); // прижимаем DP к "земле"
+	 for(uint16_t i = 0; i < 2000; i++) {}; // немного ждём
+
+	 // переинициализируем пин для работы с USB
+	 GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	 GPIO_InitStruct.Pull = GPIO_NOPULL;
+	 HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+	 for(uint16_t i = 0; i < 2000; i++) {}; // немного ждём
+}
+#endif	/* USB_RESET */
 /* USER CODE END 4 */
 
 /**
@@ -1063,7 +1080,7 @@ void Error_Handler(void)
   * @retval None
   */
 void assert_failed(uint8_t *file, uint32_t line)
-{ 
+{
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
