@@ -509,6 +509,7 @@ int main(void)
 ////--------------------------------------------------------------------------
 
 	union NVRAM DevNVRAM;
+
 	static FLASH_EraseInitTypeDef EraseInitStruct; // структура для очистки флеша
 
 	EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES; // постраничная очистка, FLASH_TYPEERASE_MASSERASE - очистка всего флеша
@@ -648,6 +649,7 @@ int main(void)
 	HAL_Delay(100);
 //--------------------------------------------------------------------------
 	crete_calibration_table(&DevNVRAM);
+	uint16_t new_valDAC = volt2dgt(&DevNVRAM, 400);
 
 
 //#endif	/* TEST_FLASH_TABLE */

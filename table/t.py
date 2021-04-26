@@ -16,7 +16,7 @@ dacValB_m27=[]
 table = {'V12': [], 'V27': []}
 
 input_path = "C:/Users/kozlov/STM32CubeIDE/workspace/Probe_LA_v5_calibrate_table/table/logic_calibration_table.txt"
-output_path = "C:/Users/kozlov/STM32CubeIDE/workspace/Probe_LA_v5_calibrate_table/Core/Src/logic_calibration_table.c"
+output_path = "C:/Users/kozlov/STM32CubeIDE/workspace/Probe_LA_v5_calibrate_table/Core/Src/logic_calibration_table1.c"
 
 with open(input_path) as f:
     key = ''
