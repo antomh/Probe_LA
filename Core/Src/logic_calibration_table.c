@@ -513,3 +513,49 @@
      DevNVRAM->calibration_table.dacValB_m27[162] = 0x1000;
 
  }
+
+// ////--------------------------------------------------------------------------
+// ////  Интерполяция
+// uint16_t interpolation_dacVAL(uint16_t valDAC_0,uint16_t valDAC_1,uint16_t ya,uint16_t yb,uint16_t yc){
+// 	uint16_t determined_value = 0;
+// 	return determined_value = (yc - yb) * ((valDAC_0 - valDAC_1) / (ya - yb)) + valDAC_1;
+// }
+
+
+// //uint16_t interpolation_dacVAL(uint16_t xa,uint16_t xb,uint16_t ya,uint16_t yb,uint16_t yc){
+// //	uint16_t determined_value = 0;
+// // 	m = (xa - xb) / (ya - yb);
+// //    xc = (yc - yb) * m + xb;
+// //
+// //    xc = (yc - yb) * (xa - xb) / (ya - yb) + xb;
+// //
+// //	return determined_value
+// //}
+// //--------------------------------------------------------------------------
+// // Для перевода напряжения (в вольтах) в код ЦАП
+// uint16_t vlt2dgt(uint16_t V) {
+// 	uint16_t valDAC;
+// 	return valDAC = (V/DAC_REF)*DAC_MAX;
+// }
+// //--------------------------------------------------------------------------
+// uint16_t findValDAC(union NVRAM *DevNVRAM, uint16_t Volt) {
+// 	// Проверим что таблица записана и контрольная сумма совпадает
+// 	if ((DevNVRAM->calibration_table.MagicNum == MAGIC_KEY_DEFINE)
+// 			&& ((DevNVRAM->sector.CheckSum == DevNVRAM->sector.CheckSum))) {
+// 		//TODO: c начала найти значений которые есть в таблице
+
+// 		for (int i = 0; i < MAX_VAL_M12; ++i) {
+
+// 		if (DevNVRAM->calibration_table.dacValA_m12[i] == vlt2dgt(Volt)) {
+// 					return DevNVRAM->calibration_table.dacValA_m12[i];
+// 				}
+// 				//TODO: Если нет в таблице, то интерпалировать из ближайшего меньшего и сдедующего
+// 			else
+// 			{
+
+// 				//TODO Калибровочная не верная!!!
+
+// 			}
+// 		}
+// 	}
+// }
