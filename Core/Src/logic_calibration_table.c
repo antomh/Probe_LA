@@ -531,38 +531,48 @@ void crete_calibration_table(union NVRAM *DevNVRAM){
 
 uint16_t volt2dgt(union NVRAM *DevNVRAM, int16_t volt){
 
-
-int16_t minVolt = MIN_VOLT_MODE_12;
-int16_t maxVolt = MAX_VOLT_MODE_12;
-
-
-uint16_t x0 = abs(minVolt);
-uint16_t x1 = abs(maxVolt);
-
-float count = (x0+x1)/STEP_CALIBRATE;
-
-uint16_t y0 = 0;            // начало индекса массива
-uint16_t y1 = count;        // конец индекса массива
-
-float b = (count*x0)/(x0+x1);
-float a = b/x0;
-
-int16_t x = volt ;// /Ktr!!!!!!!!!!!!!!
-int y = floor(a*x+b); // искомый индекс в массиве!!! найти минимальное значение от него 26.5-->26 через floor
-
-// TODO:Найти по найденому индексу значение в массиве!  и найти значение n+1
-
-uint16_t Ca0 =(uint16_t *) DevNVRAM->calibration_table.dacValA_m12[y];
-uint16_t Ca1 = DevNVRAM->calibration_table.dacValA_m12[y+1];
-
-uint16_t a0 = (y * STEP_CALIBRATE) - abs( MIN_VOLT_MODE_12);// TODO: не правльно переводит значения!27*200 = 5400
-uint16_t a1 = ((y+1) * STEP_CALIBRATE) -abs( MIN_VOLT_MODE_12);// TODO: не правльно переводит значения!28*200 = 5600
-
-
-
-float CodeX = (((Ca1-Ca0)/(a1-a0)))*(x-a0)+Ca0;
+// TODO: Нужно ли учитывать Ктр? volt = volt*Ktr 
+float count = (abs(MIN_VOLT_MODE_12)+abs(MAX_VOLT_MODE_12))/STEP_CALIBRATE;
+uint16_t y = (floor((count*abs(MIN_VOLT_MODE_12))/(abs(MIN_VOLT_MODE_12)+abs(MAX_VOLT_MODE_12))/abs(MIN_VOLT_MODE_12)*volt+(count*abs(MIN_VOLT_MODE_12))/(abs(MIN_VOLT_MODE_12)+abs(MAX_VOLT_MODE_12)))); // искомый индекс в массиве!!! найти минимальное значение от него 26.5-->26 через floor
+uint16_t CodeX = (((DevNVRAM->calibration_table.dacValA_m12[y+1]-DevNVRAM->calibration_table.dacValA_m12[y])/(((y+1) * STEP_CALIBRATE) -abs( MIN_VOLT_MODE_12)-(y * STEP_CALIBRATE) - abs( MIN_VOLT_MODE_12))))*(volt-(y * STEP_CALIBRATE) - abs( MIN_VOLT_MODE_12))+DevNVRAM->calibration_table.dacValA_m12[y];
 	return CodeX;
 // printf((CodeX));
+
+
+// uint16_t volt2dgt(union NVRAM *DevNVRAM, int16_t volt){
+
+
+// // int16_t minVolt = MIN_VOLT_MODE_12;
+// // int16_t maxVolt = MAX_VOLT_MODE_12;
+
+
+// uint16_t x0 = abs(MIN_VOLT_MODE_12);
+// uint16_t x1 = abs(MAX_VOLT_MODE_12);
+
+// float count = (x0+x1)/STEP_CALIBRATE;
+
+// uint16_t y0 = 0;            // начало индекса массива
+// uint16_t y1 = count;        // конец индекса массива
+
+// float b = (count*x0)/(x0+x1);
+// float a = b/x0;
+
+// int16_t x = volt ;// /Ktr!!!!!!!!!!!!!!
+// int y = floor(a*x+b); // искомый индекс в массиве!!! найти минимальное значение от него 26.5-->26 через floor
+
+// // TODO:Найти по найденому индексу значение в массиве!  и найти значение n+1
+
+// uint16_t Ca0 =(uint16_t *) DevNVRAM->calibration_table.dacValA_m12[y];
+// uint16_t Ca1 = DevNVRAM->calibration_table.dacValA_m12[y+1];
+
+// uint16_t a0 = (y * STEP_CALIBRATE) - abs( MIN_VOLT_MODE_12);// TODO: не правльно переводит значения!27*200 = 5400
+// uint16_t a1 = ((y+1) * STEP_CALIBRATE) -abs( MIN_VOLT_MODE_12);// TODO: не правльно переводит значения!28*200 = 5600
+
+
+
+// float CodeX = (((Ca1-Ca0)/(a1-a0)))*(x-a0)+Ca0;
+// 	return CodeX;
+// // printf((CodeX));
 
 
 
