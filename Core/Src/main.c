@@ -138,16 +138,33 @@ char buffer[64] = { 0, };
 
 uint16_t VDAC_A = 2154;
 uint16_t VDAC_B = 2154;
+//
+//void SetDacA(uint16_t da) {
+//	VDAC_A = da;
+//	DAC_AD5322_Ch1(&hspi1, VDAC_A);
+//	//	uint16_t new_valVolt = 0;
+//	//	uint16_t new_valDAC = volt2dgt(&DevNVRAM, new_valVolt);
+//}
+//void SetDacB(uint16_t db) {
+//	VDAC_B = db;
+//	DAC_AD5322_Ch2(&hspi1, VDAC_B);
+//}
+//void SetAllDAC() {
+//	DAC_AD5322_Ch1Ch2(&hspi1,VDAC_A,VDAC_B);
+//}
+//--------------------------------------------------------------------------
+union NVRAM DevNVRAM;
 
-void SetDacA(uint16_t da) {
-	VDAC_A = da;
+void SetDacA(int16_t da) {
+	VDAC_A = volt2dgt(&(DevNVRAM.calibration_table), da);
 	DAC_AD5322_Ch1(&hspi1, VDAC_A);
 }
-void SetDacB(uint16_t db) {
-	VDAC_B = db;
+void SetDacB(int16_t db) {
+	VDAC_B = volt2dgt(&(DevNVRAM.calibration_table), db);
 	DAC_AD5322_Ch2(&hspi1, VDAC_B);
 }
 void SetAllDAC() {
+
 	DAC_AD5322_Ch1Ch2(&hspi1,VDAC_A,VDAC_B);
 }
 uint16_t GetDacA() {
@@ -508,8 +525,6 @@ int main(void)
 //	union NVRAM DevNVRAM;
 ////--------------------------------------------------------------------------
 
-	union NVRAM DevNVRAM;
-
 	static FLASH_EraseInitTypeDef EraseInitStruct; // структура для очистки флеша
 
 	EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES; // постраничная очистка, FLASH_TYPEERASE_MASSERASE - очистка всего флеша
@@ -648,8 +663,9 @@ int main(void)
 	}
 	HAL_Delay(100);
 //--------------------------------------------------------------------------
-	crete_calibration_table(&DevNVRAM);
-	uint16_t new_valDAC = volt2dgt(&DevNVRAM, 400);
+//	crete_calibration_table(&DevNVRAM);
+//	uint16_t new_valVolt = 0;
+//	uint16_t new_valDAC = volt2dgt(&DevNVRAM, new_valVolt);
 
 
 //#endif	/* TEST_FLASH_TABLE */

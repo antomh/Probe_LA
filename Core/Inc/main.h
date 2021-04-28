@@ -57,8 +57,10 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void SetDacA(uint16_t);
-void SetDacB(uint16_t);
+//void SetDacA(uint16_t);
+//void SetDacB(uint16_t);
+void SetDacA(int16_t da);
+void SetDacB(int16_t db);
 void SetAllDAC();
 
 uint16_t GetDacA();

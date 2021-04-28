@@ -343,6 +343,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 			resValTIM4_PB6(); // обнуление переменной для проведения калиброки
 			memcpy(&tVal16, Buf + 1, sizeof(tVal16));
 			SetDacA(tVal16);
+//			SetDacA(tVal16);
 
 			printf("DacA: %d\n", tVal16);
 			UserTxBufferFS[0] = cmd;

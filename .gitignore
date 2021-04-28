@@ -57,3 +57,5 @@ Debug/makefile
 *.list
 *.bin
 *.list
+*.bin
+*.list

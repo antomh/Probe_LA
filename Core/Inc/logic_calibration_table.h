@@ -88,15 +88,12 @@ union NVRAM {
 	Table_t 	calibration_table; //		1016 байт
 	struct 		FLASH_Sector sector; //		1024 байт
 	uint32_t	data32[256]; // 			1024 байт
-	uint8_t		data16[256 * 2]; // 		1024 байт
-	uint8_t		data8[256 * 4]; // 			1024 байт
 };
 //											1024 байт
 
-extern union NVRAM DevNVRAM;
 //--------------------------------------------------------------------------
-void crete_calibration_table(union NVRAM *DevNVRAM);
-uint16_t volt2dgt(union NVRAM *DevNVRAM, int16_t volt);
+void crete_calibration_table(Table_t *calibTable);
+uint16_t volt2dgt(Table_t *calibTable, int16_t volt);
 
 /* Base address of the Flash sectors */
 #define ADDR_FLASH_PAGE_0     ((uint32_t)0x08000000) /* Base @ of Page 0, 1 Kbytes */
