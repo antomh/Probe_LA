@@ -280,22 +280,22 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	uint8_t cmd	= Buf[0];
 
 	// command
-	// 0x01 - включение рэле										data: 1B (0x00 - выключить; 0x01 - включить)	answer: 0x01 + 1B status
-	// 0x02 - ЦАП канал А											data: 2B (значение)								answer: 0x02 + 1B status
-	// 0x03 - ЦАП канал B											data: 2B (значение)								answer: 0x03 + 1B status
-	// 0x04 - АЦП запрос значения									data: 0B										answer: 0x04 + 2B value
-	// 0x05 - запрос состояния (Relay, DA, DB)						data: 0B										answer: 0x05 + 1B состиояние рэле + 2B значение ЦАП канал А + 2B значение ЦАП канал B
-	// 0x06 - запрос состояния кнопок (Run, Up, Down)				data: 0B										answer: 0x06 + 1B состояние кнопки Run + 1B состояние кнопки Up + 1B состояние кнопки Down
+	// 0x01 - включение рэле							data: 1B (0x00 - выключить; 0x01 - включить)	answer: 0x01 + 1B status
+	// 0x02 - ЦАП канал А								data: 2B (значение)								answer: 0x02 + 1B status
+	// 0x03 - ЦАП канал B								data: 2B (значение)								answer: 0x03 + 1B status
+	// 0x04 - АЦП запрос значения						data: 0B										answer: 0x04 + 2B value
+	// 0x05 - запрос состояния (Relay, DA, DB)			data: 0B										answer: 0x05 + 1B состиояние рэле + 2B значение ЦАП канал А + 2B значение ЦАП канал B
+	// 0x06 - запрос состояния кнопок (Run, Up, Down)	data: 0B										answer: 0x06 + 1B состояние кнопки Run + 1B состояние кнопки Up + 1B состояние кнопки Down
 	// 0x07 - запрос ID устройства
-	// ("prb_v0.1"/ 0x70 0x72 0x62 0x5F 0x76 0x30 0x2E 0x31)		data: 0B										answer: 0x07 + 8B ID ("prb_v0.1")
-	// 0х08 - запрос срабатывания компаратора inHL					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x08 + 1B status
+	// ("SN+WW+YY+NNN")									data: 0B										answer: 0x07 + 9B ID ("SN+WW+YY+NNN") SN1121001- 11 неделя-21год - 001 порядковый номер изготовления
+	// 0х08 - запрос измеренной длительности			data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x08 + 1B status
+	// 0х09 - запрос измеренной длительности			data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x08 + 1B status
 
 //--------------------------------------------------------------------------
-
-	// 0х0A - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
-	// 0х0B - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
-	// 0х0C - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
-	// 0х0D - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+	// 0х0C - запрос размера калибровочной таблицы		data: 0B ([длина калибровочной таблицы ]				0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+	// 0х0B - команда записи во флеш					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+	// 0х0A - прием калибровочной таблицы				data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+	// 0х0D - запрос срабатывания компаратора inHH		data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
 
 
 	// status
@@ -418,13 +418,11 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 		UserTxBufferFS[1] = GetBtnRunState();
 		UserTxBufferFS[2] = GetBtnUpState();
 		UserTxBufferFS[3] = GetBtnDownState();
-
 		CDC_Transmit_FS(UserTxBufferFS, 4);
 		return (USBD_OK);
+//--------------------------------------------------------------------------
 	// ID? 
 	} else if (cmd == 0x07) {
-//		char str[] = "prb_v0.3";//1121001
-
 		char str[9]={0,};
 		memcpy(str, "SN", strlen("SN"));
 		itoa(SN_DEFINE,str+2,16);
@@ -443,34 +441,96 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	 * Т.е. каждый раз когда мы меняем входной код - мы запрашиваем контроллер щупа о состоянии выходов компаратора.
 	 */
 
-	// inHL?
+//--------------------------------------------------------------------------
+	// TIM inHL?
 	} else if (cmd == 0x08) {
 		EnableTIM3_PB4();
 		uint16_t temp = GetTIM3();
 		UserTxBufferFS[0] = cmd;
 		memcpy(UserTxBufferFS+1,&temp,sizeof(uint16_t));
-
-//	    for(int i = 0;i >= 10; i++ ){
-//			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-//			HAL_Delay(250);
-//		}
-
 		CDC_Transmit_FS(UserTxBufferFS, 1 + sizeof(uint16_t));
 		return (USBD_OK);
 
-	// inLL?
+	// TIM inLL?
+//--------------------------------------------------------------------------
 	} else if (cmd == 0x09) {
 		EnableTIM4_PB6();
 		uint16_t temp = GetTIM4();
 		UserTxBufferFS[0] = cmd;
 		memcpy(UserTxBufferFS+1,&temp,sizeof(uint16_t));
-
-
-
 		CDC_Transmit_FS(UserTxBufferFS, 1 + sizeof(uint16_t));
 		return (USBD_OK);
-	}
+//--------------------------------------------------------------------------
+// TODO:Прием калибровочной таблицы [0x0A][1-4][offset][count][data]
+	} else if (cmd == 0x0A) {
+		UserTxBufferFS[0] = cmd;
 
+
+
+
+
+		UserTxBufferFS[1] = RelayState;
+		tVal16 = GetDacA();
+		memcpy(UserTxBufferFS + 2, &tVal16, sizeof(tVal16));
+		tVal16 = GetDacB();
+		memcpy(UserTxBufferFS + 4, &tVal16, sizeof(tVal16));
+
+
+		CDC_Transmit_FS(UserTxBufferFS, 6);
+		return (USBD_OK);
+//--------------------------------------------------------------------------
+// TODO:Прием калибровочной таблицы [0x0B][1-4][CRC(1-4)]
+	} else if (cmd == 0x0B) {
+		UserTxBufferFS[0] = cmd;
+
+
+
+
+
+		UserTxBufferFS[1] = RelayState;
+		tVal16 = GetDacA();
+		memcpy(UserTxBufferFS + 2, &tVal16, sizeof(tVal16));
+		tVal16 = GetDacB();
+		memcpy(UserTxBufferFS + 4, &tVal16, sizeof(tVal16));
+
+
+		CDC_Transmit_FS(UserTxBufferFS, 6);
+		return (USBD_OK);
+
+//--------------------------------------------------------------------------
+// TODO:Прием калибровочной таблицы [0x0C][Длина][???]
+	} else if (cmd == 0x0C) {
+		UserTxBufferFS[0] = cmd;
+
+
+
+		UserTxBufferFS[1] = RelayState;
+		tVal16 = GetDacA();
+		memcpy(UserTxBufferFS + 2, &tVal16, sizeof(tVal16));
+		tVal16 = GetDacB();
+		memcpy(UserTxBufferFS + 4, &tVal16, sizeof(tVal16));
+
+
+		CDC_Transmit_FS(UserTxBufferFS, 6);
+		return (USBD_OK);
+//--------------------------------------------------------------------------
+	// TODO:Запись во флеш калибровочной таблицы [0x0D] data: 1B (0x00 - успешно; 0x01 - ошибка при записи)	answer: 0x0D + 1B status
+	} else if (cmd == 0x0D) {
+		UserTxBufferFS[0] = cmd;
+		UserTxBufferFS[1] = flash_write();
+
+		// Сделать функцию записи во флеш по флагу?! сравнивать CRC?
+
+		UserTxBufferFS[1] = RelayState;
+		tVal16 = GetDacA();
+		memcpy(UserTxBufferFS + 2, &tVal16, sizeof(tVal16));
+		tVal16 = GetDacB();
+		memcpy(UserTxBufferFS + 4, &tVal16, sizeof(tVal16));
+
+
+		CDC_Transmit_FS(UserTxBufferFS, 6);
+		return (USBD_OK);
+	}
 //--------------------------------------------------------------------------
 	return (USBD_OK);
   /* USER CODE END 6 */
