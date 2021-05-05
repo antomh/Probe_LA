@@ -136,8 +136,8 @@ char buffer[64] = { 0, };
 //**************************************************************************
 #if  TEST_DAC
 
-uint16_t VDAC_A = 2154;
-uint16_t VDAC_B = 2154;
+uint16_t VDAC_A = 0;
+uint16_t VDAC_B = 0;
 //
 //void SetDacA(uint16_t da) {
 //	VDAC_A = da;

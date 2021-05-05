@@ -26,6 +26,7 @@
 #include "main.h"
 #include "string.h"
 #include "stdio.h"
+#include "logic_calibration_table.h"
 
 
 /* USER CODE END INCLUDE */
@@ -104,6 +105,7 @@ uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
 uint8_t RelayState = 0x00; //TODO:ппроверить первое состоянеи первоначальное состояние реле 27V
+extern Table_t*	calibTable;
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -287,7 +289,14 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	// 0x07 - запрос ID устройства
 	// ("prb_v0.1"/ 0x70 0x72 0x62 0x5F 0x76 0x30 0x2E 0x31)		data: 0B										answer: 0x07 + 8B ID ("prb_v0.1")
 	// 0х08 - запрос срабатывания компаратора inHL					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x08 + 1B status
-	// 0х09 - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+
+//--------------------------------------------------------------------------
+
+	// 0х0A - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+	// 0х0B - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+	// 0х0C - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+	// 0х0D - запрос срабатывания компаратора inHH					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+
 
 	// status
 	// 0x00 - успешно
@@ -414,7 +423,11 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 		return (USBD_OK);
 	// ID? 
 	} else if (cmd == 0x07) {
-		char str[] = "prb_v0.3";
+//		char str[] = "prb_v0.3";//1121001
+
+		char str[9]={0,};
+		memcpy(str, "SN", strlen("SN"));
+		itoa(SN_DEFINE,str+2,16);
 
 		UserTxBufferFS[0] = cmd;
 		UserTxBufferFS[1] = strlen(str);
