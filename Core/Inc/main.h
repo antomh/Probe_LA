@@ -57,30 +57,35 @@ extern "C" {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+//--------------------------------------------------------------------------
 //void SetDacA(uint16_t);
 //void SetDacB(uint16_t);
 void SetDacA(int16_t da);
 void SetDacB(int16_t db);
 void SetAllDAC();
-
+//--------------------------------------------------------------------------
 uint16_t GetDacA();
 uint16_t GetDacB();
 uint16_t GetADC();
 uint8_t GetBtnRunState();
 uint8_t GetBtnUpState();
 uint8_t GetBtnDownState();
-
+//--------------------------------------------------------------------------
 uint8_t GetInHL();
 uint8_t GetInLL();
 void ResInHL();
 void ResInLL();
-
+//--------------------------------------------------------------------------
 void EnableTIM3_PB4();
 void resValTIM3_PB4();
 
 void EnableTIM4_PB6();
 void resValTIM4_PB6();
-
+//--------------------------------------------------------------------------
+uint32_t getCRC_table_a_m12();
+uint32_t getCRC_table_b_m12();
+uint32_t getCRC_table_a_m27();
+uint32_t getCRC_table_b_m27();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

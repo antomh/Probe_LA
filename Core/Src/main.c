@@ -67,13 +67,13 @@
 //TODO: Добавить калибровочную таблицу в проект через t.py формируется - необходимо заполнять значениями в logic_calibration_table.с
 
 //TODO: Работа с калибровочной таблицей
-//TODO: получить значение V , Поиск по значению напряжения V значение в калибровочной таблице VDAC
+//DONE: получить значение V , Поиск по значению напряжения V значение в калибровочной таблице VDAC
 //TODO: При остутсвтие значения в таблице произвести интерполяцию
 
 //TODO: По команде с VCP перезаписать таблицу
 //--------------------------------------------------------------------------
 
-//TODO: по какой то причине в этом проекте не работает CRC!!!
+//DONE: нужно отправлять длину массива кратно 32b  по какой то причине в этом проекте не работает CRC!!!
 //TODO: Реализовать процедуру изменения калибровочной таблицы через VCP!
 //TODO: Сформировать калиброчную таблицу через функцию
 //TODO: роверить первое состоянеи первоначальное состояние реле 27V
@@ -154,7 +154,26 @@ uint16_t VDAC_B = 0;
 //}
 //--------------------------------------------------------------------------
 union NVRAM DevNVRAM;
+//--------------------------------------------------------------------------
+uint32_t getCRC_table_a_m12(){
+//	uint16_t len_ = sizeof(aqrr)/(sizeof(uint32_t)*2);
+	return HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table.dacValA_m12,  sizeof(DevNVRAM.calibration_table.dacValA_m12)/(sizeof(uint32_t)*2));
+}
+uint32_t getCRC_table_b_m12(){
+//	uint16_t len_ = sizeof(aqrr)/(sizeof(uint32_t)*2);
+	return HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table.dacValB_m12,  sizeof(DevNVRAM.calibration_table.dacValB_m12)/(sizeof(uint32_t)*2));
+}
+uint32_t getCRC_table_a_m27(){
+//	uint16_t len_ = sizeof(aqrr)/(sizeof(uint32_t)*2);
+	return HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table.dacValA_m27,  sizeof(DevNVRAM.calibration_table.dacValA_m27)/(sizeof(uint32_t)*2));
+}
+uint32_t getCRC_table_b_m27(){
+//	uint16_t len_ = sizeof(aqrr)/(sizeof(uint32_t)*2);
+	return HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table.dacValB_m27,  sizeof(DevNVRAM.calibration_table.dacValB_m27)/(sizeof(uint32_t)*2));
+}
+//--------------------------------------------------------------------------
 
+//**************************************************************************
 void SetDacA(int16_t da) {
 	VDAC_A = volt2dgt(&(DevNVRAM.calibration_table), da);
 	DAC_AD5322_Ch1(&hspi1, VDAC_A);
@@ -405,9 +424,9 @@ void USB_RESET(void){
 
   }
 #endif	/* USB_RESET */
-uint8_t  flash_write(){
-	return 0x00;
-}
+//uint8_t  flash_write(){
+//	return 0x00;
+//}
 //**************************************************************************
 /* USER CODE END 0 */
 
@@ -418,6 +437,8 @@ uint8_t  flash_write(){
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
+
 
   /* USER CODE END 1 */
 
@@ -479,55 +500,6 @@ int main(void)
 #endif	/* TEST_ADC */
 //**************************************************************************
 
-//#if  TEST_FLASH_TABLE
-////--------------------------------------------------------------------------
-//#define FLASH_TABLE_START_ADDR		ADDR_FLASH_PAGE_127
-//#define FLASH_TABLE_STOP_ADDR		FLASH_TABLE_START_ADDR+FLASH_PAGE_SIZE
-////--------------------------------------------------------------------------
-//#define MAGIC_KEY_DEFINE			0x48151623
-//#define HARDWIRE_DEFINE 			0x06
-//#define FIRMWARE_DEFINE 			0x05
-//#define SN_DEFINE 					0x1121001
-////--------------------------------------------------------------------------
-//#define MAX_VAL_M12 				88//	шаг 0,2В в диапозоне [-5:12:0,2] 85  TODO:найти что за 3 значения?!
-//#define MAX_VAL_M27 				163//	шаг 0,2В в диапозоне [-30:30:0,2] 163*0.2= 32,6
-////--------------------------------------------------------------------------
-//
-//	typedef struct // 							4+4+4+176+176+326+326 = 1016 байт
-//	{
-//		uint16_t Hardwire; //					2 байта
-//		uint16_t Firmware; //					2 байта
-//		uint32_t SN; //							4 байта
-//
-//		uint32_t MagicNum; //0x4815162342		4 байта ==>4+4+2+2 = 12
-//
-//		uint16_t dacValA_m12[MAX_VAL_M12]; //	88*2 = 176 байта
-//		uint16_t dacValB_m12[MAX_VAL_M12]; //	88*2 = 176 байта
-//		uint16_t dacValA_m27[MAX_VAL_M27]; //	163*2 = 326 байта
-//		uint16_t dacValB_m27[MAX_VAL_M27]; //	163*2 = 326 байта ==> 1004 + 12 = 1016
-//
-//	} Table_t;
-//
-//	struct FLASH_Sector {
-//		uint32_t data[256 - 2]; // 	254* 4 = 1016 байта (1016 байт)
-//		uint32_t NWrite; //			4 байта
-//		uint32_t CheckSum; //		4 байта ==>1016 + 4 + 4 = 1024
-//	};
-//
-//	union NVRAM {
-//		Table_t calibration_table; //			1016 байт
-//		struct FLASH_Sector sector; //			1024 байт
-//
-//		uint32_t data32[256]; // 			1024 байт
-//		uint8_t data16[256 * 2]; // 		1024 байт
-//		uint8_t data8[256 * 4]; // 			1024 байт
-//	};
-//	//										1024 байт
-//
-////--------------------------------------------------------------------------
-//	union NVRAM DevNVRAM;
-////--------------------------------------------------------------------------
-
 	static FLASH_EraseInitTypeDef EraseInitStruct; // структура для очистки флеша
 
 	EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES; // постраничная очистка, FLASH_TYPEERASE_MASSERASE - очистка всего флеша
@@ -573,11 +545,12 @@ int main(void)
 		}
 		DevNVRAM.calibration_table.Hardwire = 0x06;
 		DevNVRAM.calibration_table.Firmware = 0x05;
-		DevNVRAM.calibration_table.SN 		= 0x1121001; //11 неделя + год + порядковый номер изготовления
+		DevNVRAM.calibration_table.SN 		= 0x1121001; //11 недел	я + год + порядковый номер изготовления
 		DevNVRAM.calibration_table.MagicNum = MAGIC_KEY_DEFINE;
 
 		DevNVRAM.sector.NWrite = 0;
-		DevNVRAM.sector.CheckSum = 0;//TODO: по какой то причине в этом проекте не работает CRC!!! у
+
+		DevNVRAM.sector.CheckSum = HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));//DONE: нужно отправлять длину кратную 32b! -  по какой то причине в этом проекте не работает CRC!!! 
 
 
 //--------------------------------------------------------------------------
@@ -650,7 +623,7 @@ int main(void)
 		l_Index = 0x00;
 
 		DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
-		DevNVRAM.sector.CheckSum = 0;
+		DevNVRAM.sector.CheckSum = HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
 
 		while (l_Address < FLASH_TABLE_STOP_ADDR) {
 			if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
@@ -666,12 +639,35 @@ int main(void)
 	}
 	HAL_Delay(100);
 //--------------------------------------------------------------------------
-//	crete_calibration_table(&DevNVRAM);
+
+
+	crete_calibration_table(&DevNVRAM);
 //	uint16_t new_valVolt = 0;
 //	uint16_t new_valDAC = volt2dgt(&DevNVRAM, new_valVolt);
-
-
 //#endif	/* TEST_FLASH_TABLE */
+
+
+
+
+
+
+	//void getCRC_table_a_m12(){
+//
+//	uint16_t _data[] ={0.};
+//
+//	memcpy(_data,DevNVRAM.calibration_table.dacValA_m12, sizeof(_data));
+//	uint32_t crc__1 = 0;
+//
+////	crc__1 = HAL_CRC_Calculate(&hcrc, _data, 88);
+////	return crc__1;
+//}
+//
+//getCRC_table_a_m12();
+
+
+
+
+
 //**************************************************************************
   /* USER CODE END 2 */
 
@@ -708,7 +704,7 @@ int main(void)
 					l_Index = 0x00;
 
 					DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
-					DevNVRAM.sector.CheckSum = 0;
+					DevNVRAM.sector.CheckSum = HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
 
 					while (l_Address < FLASH_TABLE_STOP_ADDR) {
 						if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
@@ -724,6 +720,15 @@ int main(void)
 				}
 				HAL_Delay(100);
 		}
+
+//**************************************************************************
+
+
+		uint32_t Crc_cal_a_m12 = getCRC_table_a_m12();
+		uint32_t Crc_cal_b_m12 = getCRC_table_b_m12();
+		uint32_t Crc_cal_a_m27 = getCRC_table_a_m27();
+		uint32_t Crc_cal_b_m27 = getCRC_table_b_m27();
+
 
 //**************************************************************************
 #if  TEST_READ_BTN
