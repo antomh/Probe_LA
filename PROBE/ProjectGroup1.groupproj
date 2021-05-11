@@ -1,0 +1,120 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{CAD41CF6-6007-4EEF-89C8-716E33AE3314}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="ProbeTest.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="D:\Darbas\Project\2017\ASPT\ASCD\ASCD 1.0.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\deditor\Project2.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="D:\Darbas\Project\2017\ASPT\PSU_2\PsuDll\Psu.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\mgqs\triangle_mgqs.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="TestSerial.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="..\for_exposition\BUILDER\Builder.cbproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="D:\Darbas\Project\2017\ASPT\SELECT\Select.cbproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="ProbeTest">
+        <MSBuild Projects="ProbeTest.cbproj"/>
+    </Target>
+    <Target Name="ProbeTest:Clean">
+        <MSBuild Projects="ProbeTest.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ProbeTest:Make">
+        <MSBuild Projects="ProbeTest.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="ASCD 1_0">
+        <MSBuild Projects="D:\Darbas\Project\2017\ASPT\ASCD\ASCD 1.0.cbproj"/>
+    </Target>
+    <Target Name="ASCD 1_0:Clean">
+        <MSBuild Projects="D:\Darbas\Project\2017\ASPT\ASCD\ASCD 1.0.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ASCD 1_0:Make">
+        <MSBuild Projects="D:\Darbas\Project\2017\ASPT\ASCD\ASCD 1.0.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="Project2">
+        <MSBuild Projects="..\deditor\Project2.cbproj"/>
+    </Target>
+    <Target Name="Project2:Clean">
+        <MSBuild Projects="..\deditor\Project2.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Project2:Make">
+        <MSBuild Projects="..\deditor\Project2.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="Psu">
+        <MSBuild Projects="D:\Darbas\Project\2017\ASPT\PSU_2\PsuDll\Psu.cbproj"/>
+    </Target>
+    <Target Name="Psu:Clean">
+        <MSBuild Projects="D:\Darbas\Project\2017\ASPT\PSU_2\PsuDll\Psu.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Psu:Make">
+        <MSBuild Projects="D:\Darbas\Project\2017\ASPT\PSU_2\PsuDll\Psu.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="triangle_mgqs">
+        <MSBuild Projects="..\mgqs\triangle_mgqs.cbproj"/>
+    </Target>
+    <Target Name="triangle_mgqs:Clean">
+        <MSBuild Projects="..\mgqs\triangle_mgqs.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="triangle_mgqs:Make">
+        <MSBuild Projects="..\mgqs\triangle_mgqs.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="TestSerial">
+        <MSBuild Projects="TestSerial.cbproj"/>
+    </Target>
+    <Target Name="TestSerial:Clean">
+        <MSBuild Projects="TestSerial.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="TestSerial:Make">
+        <MSBuild Projects="TestSerial.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="Builder">
+        <MSBuild Projects="..\for_exposition\BUILDER\Builder.cbproj"/>
+    </Target>
+    <Target Name="Builder:Clean">
+        <MSBuild Projects="..\for_exposition\BUILDER\Builder.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Builder:Make">
+        <MSBuild Projects="..\for_exposition\BUILDER\Builder.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="Select">
+        <MSBuild Projects="D:\Darbas\Project\2017\ASPT\SELECT\Select.cbproj"/>
+    </Target>
+    <Target Name="Select:Clean">
+        <MSBuild Projects="D:\Darbas\Project\2017\ASPT\SELECT\Select.cbproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Select:Make">
+        <MSBuild Projects="D:\Darbas\Project\2017\ASPT\SELECT\Select.cbproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="ProbeTest;ASCD 1_0;Project2;Psu;triangle_mgqs;TestSerial;Builder;Select"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="ProbeTest:Clean;ASCD 1_0:Clean;Project2:Clean;Psu:Clean;triangle_mgqs:Clean;TestSerial:Clean;Builder:Clean;Select:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="ProbeTest:Make;ASCD 1_0:Make;Project2:Make;Psu:Make;triangle_mgqs:Make;TestSerial:Make;Builder:Make;Select:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

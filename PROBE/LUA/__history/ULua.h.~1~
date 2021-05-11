@@ -1,0 +1,77 @@
+//---------------------------------------------------------------------------
+
+#ifndef ULuaH
+#define ULuaH
+
+#include "lua.hpp"
+#include "string"
+#include <System.Classes.hpp>
+#include <Vcl.Controls.hpp>
+#include <Vcl.StdCtrls.hpp>
+#include <Vcl.Forms.hpp>
+#include <Vcl.Dialogs.hpp>
+#include "UFWait.h"
+#include "UModules.h"
+#include "Templates.h"
+#include "UPage.h"
+#include "UGlobal.h"
+#include "Observer.h"
+#include "UData.h"
+#include "ULuaFunc.h"
+//#include "UFName.h"
+
+//---------------------------------------------------------------------------
+//#define LUA_GLOBALSINDEX
+//typedef int (*lua_CFunction) ( lua_State * );
+//---------------------------------------------------------------------------
+
+class ULuaObs;
+//==============================================================================
+class ULua{
+
+	public:
+	//------------------------------------------
+	ULua();
+	~ULua();
+
+	__property String 	Script 		= {read = GetScript, 	write = SetScript};
+	__property int 		State		= {read = GetState, 	write = SetState};
+
+	void __fastcall Execute(String script);
+	void __fastcall Suspend();
+	void __fastcall Resume();
+	void __fastcall Stop();
+	void __fastcall Build();
+    //-------------------------------------------
+
+
+
+	protected:
+
+	void		SetScript(String script);
+	void		SetState(int);
+
+	String		GetScript();
+	int			GetState();
+
+	lua_State*		FLua;
+	lua_State*		Flua;
+	ULuaObs*		FObs;
+
+	int				FResult;
+	String			FScript;
+	int				FState;
+};
+
+//==============================================================================
+class ULuaObs:public UObserv{
+
+	public:
+	ULuaObs(ULua* parent){FParent = parent;};
+	~ULuaObs(){};
+	virtual void Update(HData data){FParent->Build();};
+	private:
+	ULua*	FParent;
+};
+
+#endif

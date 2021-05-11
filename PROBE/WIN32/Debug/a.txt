@@ -1,0 +1,482 @@
+Turbo Dump  Version 6.5.2.0 Copyright (c) 1988-2013 Embarcadero Technologies, Inc.
+                 Display of File triangle_mgqs.dll
+
+Old Executable Header
+
+DOS File Size                                     161C00h  (1448960. )
+Load Image Size                                      210h  (   528. )
+Relocation Table entry count                          0000h  (     0. )
+Relocation Table address                              0040h  (    64. )
+Size of header record      (in paragraphs)            0004h  (     4. )
+Minimum Memory Requirement (in paragraphs)            000Fh  (    15. )
+Maximum Memory Requirement (in paragraphs)            FFFFh  ( 65535. )
+File load checksum                                    0000h  (     0. )
+Overlay Number                                        001Ah  (    26. )
+
+ILINK Version 5.01
+
+Initial Stack Segment  (SS:SP)			  0000:00B8
+Program Entry Point    (CS:IP)			  0000:0000
+
+
+Portable Executable (PE) File
+
+Header base: 00000200
+
+CPU type                 80386
+Flags                    210E [ executable backwards 32bit library ]
+DLL flags                0000 [ ]
+Linker Version           5.0
+Time stamp               5F999455 : Wed Oct 28 19:55:01 2020
+O/S Version              4.0
+User Version             0.0
+Subsystem Version        5.0
+Subsystem                0003 [ Windows character ]
+Object count             00000008
+Symbols offset           00000000
+Symbols count            00000000
+Optional header size     00E0
+Magic #                  10B
+Code size                00135000
+Init Data size           00018000
+Uninit Data size         00000000
+Entry RVA                0000142C
+Image base               00400000
+Code base                00001000
+Data base                00136000
+Object/File align        00001000/00000200
+Reserved                 00000000
+Image size               00170000
+Header size              00000600
+Checksum                 00000000
+Stack reserve/commit     00000000/00000000
+Heap reserve/commit      00100000/00001000
+Number interesting RVAs  00000010
+Name                   RVA       Size  
+------------------  --------  --------
+Exports             00152000  00000207
+Imports             0014F000  0000125E
+Resources           00153000  00002C00
+Exceptions          00000000  00000000
+Security            00000000  00000000
+Fixups              00156000  00019D18
+Debug               00000000  00000000
+Description         00000000  00000000
+Global Ptr          00000000  00000000
+TLS                 00000000  00000000
+Callbacks           00000000  00000000
+Bound Imports       00000000  00000000
+Import Addr Table   00000000  00000000
+Delayed Imports     00151000  00000283
+COM Runtime         00000000  00000000
+reserved            00000000  00000000
+
+Object table:
+#   Name              VirtSize    RVA     PhysSize  Phys off  Flags   
+--  --------          --------  --------  --------  --------  --------
+01  .text             00135000  00001000  00135000  00000600  60000020 [CER]
+02  .data             00018000  00136000  0000DE00  00135600  C0000040 [IRW]
+03  .tls              00001000  0014E000  00000200  00143400  C0000040 [IRW]
+04  .idata            00002000  0014F000  00001400  00143600  40000040 [IR]
+05  .didata           00001000  00151000  00000400  00144A00  C0000040 [IRW]
+06  .edata            00001000  00152000  00000400  00144E00  40000040 [IR]
+07  .rsrc             00003000  00153000  00002C00  00145200  40000040 [IR]
+08  .reloc            0001A000  00156000  00019E00  00147E00  50000040 [IRS]
+
+Key to section flags:
+  C - contains code
+  E - executable
+  I - contains initialized data
+  R - readable
+  S - shareable
+  W - writeable
+
+******************************************************************************
+Section:             Import
+File Offset:         00143600 (1324544)
+  ImportLookUpTblRVA:0014F0C8
+  Time Stamp:        00000000
+  Forwarder Chain:   00000000 (index of first forwarder reference)
+
+Imports from UDATA.DLL
+                  HData::HData(System::UnicodeString)
+                  HData::HData(int)
+                  HData::~HData()
+                  HData::operator [](System::UnicodeString)
+                  HData::operator System::UnicodeString()
+                  HData::operator double()
+                  HData::operator int()
+                  __fastcall HData::AddInt(System::UnicodeString)
+                  __fastcall HData::AddObject(System::UnicodeString)
+                  __fastcall HData::AddString(System::UnicodeString)
+                  HData::SetFloat(double)
+                  HData::SetInt(int)
+                  HData::SetString(System::UnicodeString)
+                  __fastcall HData::Find(System::UnicodeString)
+
+Imports from UNMBASE.DLL
+                  unmbase_close
+                  unmbase_init
+
+Imports from UNMGQS_32.DLL
+                  unmgqs_afg_setData
+                  unmgqs_close
+                  unmgqs_config_afg
+                  unmgqs_config_afg_gen
+                  unmgqs_config_afg_modul
+                  unmgqs_config_afg_signal
+                  unmgqs_config_chan
+                  unmgqs_config_mode
+                  unmgqs_config_sample_freq
+                  unmgqs_config_source_freq
+                  unmgqs_config_start
+                  unmgqs_connect
+                  unmgqs_get_temperature
+                  unmgqs_init
+                  unmgqs_start
+                  unmgqs_state
+                  unmgqs_stop
+
+Imports from ADVAPI32.DLL
+                  RegCloseKey
+                  RegOpenKeyExW
+                  RegQueryValueExW
+
+Imports from KERNEL32.DLL
+                  CloseHandle
+                  CompareStringW
+                  CreateEventW
+                  CreateFileA
+                  CreateFileW
+                  DeleteCriticalSection
+                  EnterCriticalSection
+                  EnumCalendarInfoW
+                  EnumSystemLocalesW
+                  ExitProcess
+                  FileTimeToSystemTime
+                  FindClose
+                  FindFirstFileW
+                  FormatMessageW
+                  FreeEnvironmentStringsA
+                  FreeLibrary
+                  GetACP
+                  GetCPInfo
+                  GetCPInfoExW
+                  GetCommandLineW
+                  GetCurrentProcess
+                  GetCurrentThreadId
+                  GetDateFormatW
+                  GetDiskFreeSpaceW
+                  GetEnvironmentStrings
+                  GetFileAttributesW
+                  GetFileType
+                  GetFullPathNameW
+                  GetLastError
+                  GetLocalTime
+                  GetLocaleInfoA
+                  GetLocaleInfoW
+                  GetModuleFileNameA
+                  GetModuleFileNameW
+                  GetModuleHandleA
+                  GetModuleHandleW
+                  GetOEMCP
+                  GetProcAddress
+                  GetProcessHeap
+                  GetStartupInfoA
+                  GetStartupInfoW
+                  GetStdHandle
+                  GetStringTypeA
+                  GetStringTypeW
+                  GetSystemDefaultLangID
+                  GetSystemDefaultUILanguage
+                  GetSystemInfo
+                  GetThreadLocale
+                  GetTickCount
+                  GetTimeZoneInformation
+                  GetUserDefaultLCID
+                  GetUserDefaultUILanguage
+                  GetVersion
+                  GetVersionExA
+                  GetVersionExW
+                  HeapAlloc
+                  HeapCreate
+                  HeapDestroy
+                  HeapFree
+                  HeapSize
+                  InitializeCriticalSection
+                  InterlockedDecrement
+                  InterlockedExchange
+                  InterlockedIncrement
+                  IsDBCSLeadByteEx
+                  IsDebuggerPresent
+                  IsValidLocale
+                  LCMapStringA
+                  LeaveCriticalSection
+                  LoadLibraryA
+                  LoadLibraryExW
+                  LocalAlloc
+                  LocalFree
+                  MultiByteToWideChar
+                  RaiseException
+                  ReadFile
+                  ResetEvent
+                  RtlUnwind
+                  SetConsoleCtrlHandler
+                  SetEndOfFile
+                  SetEvent
+                  SetFilePointer
+                  SetHandleCount
+                  SetLastError
+                  SetThreadLocale
+                  Sleep
+                  SwitchToThread
+                  TlsAlloc
+                  TlsFree
+                  TlsGetValue
+                  TlsSetValue
+                  TryEnterCriticalSection
+                  UnhandledExceptionFilter
+                  VirtualAlloc
+                  VirtualFree
+                  VirtualProtect
+                  VirtualQuery
+                  VirtualQueryEx
+                  WaitForSingleObject
+                  WideCharToMultiByte
+                  WriteFile
+                  lstrlenW
+
+Imports from USER32.DLL
+                  CharLowerBuffW
+                  CharNextW
+                  CharUpperBuffW
+                  CharUpperW
+                  EnumThreadWindows
+                  GetSystemMetrics
+                  LoadStringW
+                  MessageBoxA
+                  MessageBoxW
+                  wsprintfA
+
+Imports from OLE32.DLL
+                  CoCreateGuid
+                  CoCreateInstance
+                  CoInitialize
+                  CoTaskMemFree
+                  CoUninitialize
+                  IsEqualGUID
+                  StringFromCLSID
+
+Imports from OLEAUT32.DLL
+    (ord. =  200)
+    (ord. =   15)
+    (ord. =   20)
+    (ord. =   19)
+    (ord. =  148)
+    (ord. =    4)
+    (ord. =    6)
+    (ord. =    5)
+    (ord. =   12)
+    (ord. =    9)
+    (ord. =   10)
+    (ord. =    8)
+
+Imports from PROPSYS.DLL
+
+Delayed Load Import Table
+
+Delayed Imports from KERNEL32.DLL
+  Attributes:        00000001
+  Error reading delayed import directory at offset 0x00; attributes not 0.
+  Aborting dump of delayed imports.
+
+******************************************************************************
+Section:             Exports
+File Offset:         00144E00 (1330688)
+  Flags:             00000000
+  Time Stamp:        00000000
+  Major Version:     0000
+  Minor Version:     0000
+
+Exports from triangle_mgqs.dll
+  18 exported name(s), 18 export addresse(s).  Ordinal base is 1.
+  Sorted by Name:
+    RVA      Ord. Hint Name
+    -------- ---- ---- ----
+    0000F940    9 0000 __linkproc__ Udouble::Finalize
+    0000F928    8 0001 __linkproc__ Udouble::Initialize
+    0001651C   11 0002 __linkproc__ Umgqs::Finalize
+    00016504   10 0003 __linkproc__ Umgqs::Initialize
+    0001C478   13 0004 __linkproc__ Usignals::Finalize
+    0001C460   12 0005 __linkproc__ Usignals::Initialize
+    0001EFEC   15 0006 __linkproc__ Uwave::Finalize
+    0001EFD4   14 0007 __linkproc__ Uwave::Initialize
+    00136348   18 0008 HReg::FPath
+    0006730C   16 0009 TMethodImplementationIntercept
+    00002574    6 000A _Amplitude
+    00002038    1 000B _Connect
+    00002550    5 000C _Disable
+    000024B0    2 000D _Disconnect
+    0000252C    4 000E _Enable
+    00002690    7 000F _Offset
+    0013610C   17 0010 ___CPPdebugHook
+    00002510    3 0011 _isConnect
+
+******************************************************************************
+Section:             Resources
+File Offset:         00145200 (1331712)
+  Flags:             00000000
+  Time Stamp:        515C9EE1 : Thu Apr  4 01:28:01 2013
+  Major Version:     0000
+  Minor Version:     0000
+
+Resources:
+Type          Name                   Lang Id
+--------------------------------------------
+[0 named entries, 3 ID entries]
+type: String Table (6)  (next directory @00000028)
+
+              [0 named entries, 12 ID entries]
+              type: Unknown (4085)  (next directory @000000D0)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @00000238)
+                                         Offset:    00153358
+                                         Size:      0000018C
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4086)  (next directory @000000E8)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @00000248)
+                                         Offset:    001534E4
+                                         Size:      00000108
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4087)  (next directory @00000100)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @00000258)
+                                         Offset:    001535EC
+                                         Size:      000000E4
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4088)  (next directory @00000118)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @00000268)
+                                         Offset:    001536D0
+                                         Size:      00000288
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4089)  (next directory @00000130)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @00000278)
+                                         Offset:    00153958
+                                         Size:      00000454
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4090)  (next directory @00000148)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @00000288)
+                                         Offset:    00153DAC
+                                         Size:      00000388
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4091)  (next directory @00000160)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @00000298)
+                                         Offset:    00154134
+                                         Size:      00000310
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4092)  (next directory @00000178)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @000002A8)
+                                         Offset:    00154444
+                                         Size:      00000494
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4093)  (next directory @00000190)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @000002B8)
+                                         Offset:    001548D8
+                                         Size:      00000350
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4094)  (next directory @000001A8)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @000002C8)
+                                         Offset:    00154C28
+                                         Size:      00000514
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4095)  (next directory @000001C0)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @000002D8)
+                                         Offset:    0015513C
+                                         Size:      000003B0
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              type: Unknown (4096)  (next directory @000001D8)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @000002E8)
+                                         Offset:    001554EC
+                                         Size:      00000430
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+type: RCData (10)  (next directory @00000098)
+
+              [2 named entries, 0 ID entries]
+              DVCLAL  (next directory @000001F0)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (0)  (data @000002F8)
+                                         Offset:    0015591C
+                                         Size:      00000010
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+              PLATFORMTARGETS  (next directory @00000208)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (1033)  (data @00000308)
+                                         Offset:    0015592C
+                                         Size:      00000002
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+type: Version (16)  (next directory @000000B8)
+
+              [0 named entries, 1 ID entries]
+              type: Cursor (1)  (next directory @00000220)
+
+                                     [0 named entries, 1 ID entries]
+                                     type: Unknown (1033)  (data @00000318)
+                                         Offset:    00155930
+                                         Size:      00000140
+                                         Code Page: 00000000
+                                         Reserved:  00000000
+
+
+
