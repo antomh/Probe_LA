@@ -1,3 +1,8 @@
 {
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "Disabled",
+    "files.associations": {
+        "xhash": "c",
+        "xtree": "c",
+        "xutility": "c"
+    }
 }

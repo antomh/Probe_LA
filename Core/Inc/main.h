@@ -71,6 +71,8 @@ uint8_t GetBtnRunState();
 uint8_t GetBtnUpState();
 uint8_t GetBtnDownState();
 //--------------------------------------------------------------------------
+void runCommands(uint8_t *Buf, uint32_t *Len);
+//--------------------------------------------------------------------------
 uint8_t GetInHL();
 uint8_t GetInLL();
 void ResInHL();
