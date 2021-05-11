@@ -552,7 +552,7 @@ int main(void)
 
 		DevNVRAM.sector.NWrite = 0;
 
-		DevNVRAM.sector.CheckSum = HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));//DONE: нужно отправлять длину кратную 32b! -  по какой то причине в этом проекте не работает CRC!!! 
+		DevNVRAM.sector.CheckSum = 0;//HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));//DONE: нужно отправлять длину кратную 32b! -  по какой то причине в этом проекте не работает CRC!!!
 
 
 //--------------------------------------------------------------------------
@@ -625,7 +625,7 @@ int main(void)
 		l_Index = 0x00;
 
 		DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
-		DevNVRAM.sector.CheckSum = HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
+		DevNVRAM.sector.CheckSum = 0;//HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
 
 		while (l_Address < FLASH_TABLE_STOP_ADDR) {
 			if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
@@ -706,7 +706,7 @@ int main(void)
 					l_Index = 0x00;
 
 					DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
-					DevNVRAM.sector.CheckSum = HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
+					DevNVRAM.sector.CheckSum = 0;//HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
 
 					while (l_Address < FLASH_TABLE_STOP_ADDR) {
 						if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
@@ -726,10 +726,10 @@ int main(void)
 //**************************************************************************
 
 
-		uint32_t Crc_cal_a_m12 = getCRC_table_a_m12();
-		uint32_t Crc_cal_b_m12 = getCRC_table_b_m12();
-		uint32_t Crc_cal_a_m27 = getCRC_table_a_m27();
-		uint32_t Crc_cal_b_m27 = getCRC_table_b_m27();
+//		uint32_t Crc_cal_a_m12 = getCRC_table_a_m12();
+//		uint32_t Crc_cal_b_m12 = getCRC_table_b_m12();
+//		uint32_t Crc_cal_a_m27 = getCRC_table_a_m27();
+//		uint32_t Crc_cal_b_m27 = getCRC_table_b_m27();
 
 
 //**************************************************************************
@@ -1178,7 +1178,7 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-	 printf("Wrong parameters value: file %s on line %d\r\n", file, line);
+//	 printf("Wrong parameters value: file %s on line %d\r\n", file, line);
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
