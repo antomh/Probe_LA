@@ -157,7 +157,9 @@ union NVRAM DevNVRAM;
 //--------------------------------------------------------------------------
 uint32_t getCRC_table_a_m12(){
 //	uint16_t len_ = sizeof(aqrr)/(sizeof(uint32_t)*2);
-	return HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table.dacValA_m12,  sizeof(DevNVRAM.calibration_table.dacValA_m12)/(sizeof(uint32_t)*2));
+	uint32_t crc = HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table.dacValA_m12,  sizeof(DevNVRAM.calibration_table.dacValA_m12)/(sizeof(uint32_t)*2));
+	HAL_Delay(1);
+	return crc;
 }
 uint32_t getCRC_table_b_m12(){
 //	uint16_t len_ = sizeof(aqrr)/(sizeof(uint32_t)*2);

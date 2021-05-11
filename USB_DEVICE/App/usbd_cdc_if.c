@@ -561,8 +561,8 @@ static int8_t CDC_Receive_FS(uint8_t *Buf, uint32_t *Len)
 			{
 				UserTxBufferFS[0] = cmd;
 				UserTxBufferFS[1] = 0x01;
-
-				uint32_t crc_1 = getCRC_table_a_m12();//270814253
+//				Crc_cal_a_m12;
+//				uint32_t crc_1 = getCRC_table_a_m12();//270814253
 //				memcpy(UserTxBufferFS + 2, crc_1, sizeof(crc_1));
 				
 				printf("getCRC_table_a_m12 - %d \n", crc_1);
