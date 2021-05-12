@@ -1,0 +1,25 @@
+--funtions
+--end_functions
+local voltage = 5
+local low_level = 5.77
+local hi_level = 2.4
+
+mode_12();
+local l_code = to_code_12v(low_level);
+local h_code = to_code_12v(hi_level);
+
+set_voltage(3, voltage);
+set_current(3, 0.02);
+enable(3);
+
+set_amplitude(0,1);
+set_offset(0,0);
+mgqs_enable(0);
+
+low_code(l_code);
+hi_code(h_code);
+
+local a = time(1);
+console(''..l_code..' >> '..a);
+
+

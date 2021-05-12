@@ -1,0 +1,1434 @@
+//---------------------------------------------------------------------------
+
+#pragma hdrstop
+
+#include "ULuaFunc.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+
+bool   stop 	= false;
+bool   wait 	= false;
+int	   debug	= 0;
+
+extern 	HGlobal*	Global;
+extern 	UModules 	Modules;
+extern 	WPage*		Page;
+extern	TPanel*		LPnl;
+extern	TPanel*		RPnl;
+extern	TPanel*		BPnl;
+
+
+//==============================================================================
+
+void  Wrap(String source, TStrings* receiver, String delimiters){
+
+	enum TMode {lexem,delim};
+	TMode mode	=	delim;
+	receiver->Clear(); //?????????????
+
+	String Lex;
+	for(int i = 1; i <= source.Length(); i++){
+
+		if(source.IsDelimiter(delimiters,i)){
+			if(mode == lexem){
+				receiver->Add(Lex);
+				Lex = "";
+			}
+			mode = delim;
+		}else{
+			mode = lexem;
+			Lex += source[i];
+		}
+	}
+	if(mode == lexem){
+		receiver->Add(Lex);
+		Lex = "";
+	}
+};
+
+//-----------------------------------------
+HPtr<TStringList>	Wrap(String source){
+
+	enum TMode {lexem,delim};
+	TMode mode = delim;
+
+	HPtr<TStringList>	list;
+	list.Initialize();
+
+	String Lex;
+	for(int i = 1;i <= source.Length(); i++){
+		if(source.IsDelimiter("/",i)){
+			if(mode == lexem){
+				list->Add(Lex);
+				Lex = "";
+			}
+			mode = delim;
+		}else{
+			mode = lexem;
+			Lex += source[i];
+		}
+	}
+	if(mode == lexem){
+		list->Add(Lex);
+		Lex = "";
+	}
+	return list;
+};
+
+//-----------------------------------------
+int	Return(lua_State*	lvm){
+
+	stop = true;
+	return lua_yield(lvm,0);
+}
+
+//-----------------------------------------
+int	Pause(lua_State*	lvm){
+
+	return lua_yield(lvm,0);
+};
+
+//-----------------------------------------
+int	Message(lua_State*	lvm){
+
+	String type;
+	String message;
+	try{
+		int count = lua_gettop(lvm);
+		if(count == 1){
+
+			if(lua_isboolean(lvm,1)){
+
+				bool a = lua_toboolean(lvm,1);
+				if(a) 	message = "True";
+				else	message	= "False";
+			}else	message 	= lua_tostring(lvm,1);
+			ShowMessage(message);
+
+		}else if(count == 2){
+
+			type 		= lua_tostring(lvm,2);
+			message 	= lua_tostring(lvm,1);
+			int t = 4;
+			if(LowerCase(type) == "warning")		t = 0;
+			else  if(LowerCase(type) == "error")	t = 1;
+			else  if(LowerCase(type) == "inform")		t = 2;
+
+			MessageDlg(message,TMsgDlgType(t),TMsgDlgButtons()<<mbOK,0);
+
+		}
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return Return(lvm);
+	return 1;
+
+};
+
+
+//---------------------------------------------------------------------------
+int USleep(lua_State*	lvm){
+
+	unsigned t;
+	int p = lua_tointeger(lvm,1);
+	int a = p/50;
+	int b = p - a*50;
+
+	for(int i = 0; i < a; i++){
+
+		Sleep(50);
+		Application->ProcessMessages();
+		if(stop)	return Return(lvm);
+
+	}
+	Sleep(b);
+	return 1;
+}
+
+//----------------------------------------------------------------------------
+int		FTrue		(lua_State*	lvm){
+
+	(*Global->Data)["System"]["Status"].Int = CHECK_GOOD;
+	return 0;
+};
+
+//----------------------------------------------------------------------------
+int		FFalse		(lua_State*	lvm){
+
+	(*Global->Data)["System"]["Status"].Int = CHECK_BAD;
+	return 0;
+};
+
+//----------------------------------------------------------------------------
+int		Request		(lua_State*	lvm){
+
+    wait = true;
+	(*Global->Data)["System"]["State"] = WAIT;
+	return lua_yield(lvm,0);
+};
+
+//-----------------------------------------------
+int		Stat		(lua_State*	lvm){
+
+	int status = -1;
+	if((*Global->Data)["System"].Find("Status"))	status = (*Global->Data)["System"]["Status"];
+	lua_pushinteger(lvm, status);
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//-----------------------------------------------
+int		Debug		(lua_State*	lvm){
+
+	int count	= lua_gettop(lvm);
+
+	if(count == 0){
+
+
+	}else
+	if(lua_isnumber(lvm, 1)){
+		int t = lua_tointeger(lvm, 1);
+		(*Global->Data)["System"].AddInt("Debug").Int	= t;
+		debug = t;
+	}
+
+	lua_pushinteger(lvm, debug);
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+
+/*
+//---------------------------------
+int Wait(lua_State*		lvm){
+
+
+	Application->ProcessMessages();
+	if(stop)	return Stop(lvm);
+
+	try{
+
+		int t 			= lua_tointeger(lvm,2);
+		String message	= lua_tostring(lvm,1);
+		TFWait* F = new TFWait(NULL,t,message);
+		F->Show();
+
+	}catch(...){;}
+
+	return 1;
+};
+*/
+//----------------------------------------------
+int		ObjectCreate(lua_State*		lvm){
+
+	try{
+		int count  = lua_gettop(lvm);
+		String str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod = NULL;
+		IObject*	Obj = NULL;
+		ICommand*	Com = NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod){
+			IObject* obj = Mod->Create();
+
+			if(obj){
+				AnsiString path = Mod->Name + "/" + obj->Name;
+				lua_pushstring(lvm, path.c_str());
+			}
+
+			Modules.Inform(HData());
+
+		};
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//----------------------------------------------
+int		ObjectClose(lua_State*		lvm){
+
+	try{
+		int count	= lua_gettop(lvm);
+		String name	= lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(name);
+
+		IModule* 	Mod = NULL;
+		IObject*	Obj = NULL;
+
+		if(count == 0){
+
+			Modules.First();
+			while(!Modules.Eof){
+
+				Mod = Modules.Value;
+				Mod->Clear();
+				Modules.Next();
+
+			}
+		}else{
+
+			if(list->Count == 1){
+
+				Mod = Modules[list->Strings[0]];
+				if(Mod)	Mod->Clear();
+
+			}else{
+
+				Mod = Modules[list->Strings[0]];
+				if(Mod)	Mod->Delete(list->Strings[1]);
+			}
+		}
+		Modules.Inform(HData());
+
+	}catch(...){;}
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+/*
+//----------------------------------------------
+int		CloseObjects(lua_State*		lvm){
+
+	if(stop)	Stop(lvm);
+	Application->ProcessMessages();
+
+	try{
+		int count	= lua_gettop(lvm);
+
+		IModule* 	Mod = NULL;
+		IObject*	Obj = NULL;
+
+		if(!count){
+
+			Modules.First();
+			while(!Modules.Eof){
+
+				Mod = Modules.Value;
+				Mod->Clear();
+				Modules.Next();
+
+			}
+
+		}else{
+			String name	= lua_tostring(lvm,1);
+			Mod = Modules[name];
+			if(Mod)	Mod->Clear();
+		}
+
+
+		Modules.Inform(HData());
+
+	}catch(...){;}
+	return 1;
+};
+*/
+//------------------------------------------------
+int		ObjectFind(lua_State*		lvm){
+
+	bool res = false;
+	try{
+		int count	= lua_gettop(lvm);
+		String name	= lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(name);
+
+		if(list->Count >= 2){;
+
+			IModule* 	Mod = NULL;
+			IObject*	Obj = NULL;
+
+			Mod = Modules[list->Strings[0]];
+			if(Mod)		res = Mod->Find(list->Strings[1]);
+		}
+
+	}catch(...){;}
+
+	lua_pushboolean(lvm,res);
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//--------------------------------------------
+int 	FormCreate(lua_State*		lvm){
+
+
+	AnsiString res = "";
+	try{
+		int count   = lua_gettop(lvm);
+		String str	= lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		IForms*		Forms 	= NULL;
+		IForm*		Form	= NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod){
+
+			Obj = (*Mod)[list->Strings[1]];
+			if(Obj){
+
+				Forms 		 = Obj->Forms;
+				Form	 	 = Forms->Create(list->Strings[2]);
+				if(Form) res = Form->Name;
+
+			}
+			Modules.Inform(HData());
+
+		};
+
+	}catch(...){;}
+
+	lua_pushstring(lvm, res.c_str());
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//--------------------------------------------
+int 	FormClose(lua_State*		lvm){
+
+	try{
+		int count   = lua_gettop(lvm);
+		String str 	= lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		IForms*		Forms 	= NULL;
+
+		if(count == 0){
+
+			Modules.First();
+			while(!Modules.Eof){
+
+				Mod = Modules.Value;
+				Mod->First();
+				while(!Mod->Eof){
+					Forms = Mod->Value->Forms;
+					if(Forms)	Forms->Clear();
+					Mod->Next();
+				}
+				Modules.Next();
+
+			}
+
+		}else{
+			if(list->Count == 1){
+
+				Mod = Modules[list->Strings[0]];
+				if(Mod){
+
+					Mod->First();
+					while(!Mod->Eof){
+						Forms = Mod->Value->Forms;
+						if(Forms)	Forms->Clear();
+						Mod->Next();
+					}
+
+				}
+			}else if(list->Count == 2){
+
+				Mod = Modules[list->Strings[0]];
+				if(Mod)	Obj 	= (*Mod)[list->Strings[1]];
+				if(Obj) Forms	= Obj->Forms;
+				if(Forms)	Forms->Clear();
+
+			}else{
+
+				Mod = Modules[list->Strings[0]];
+				if(Mod)	Obj 	= (*Mod)[list->Strings[1]];
+				if(Obj) Forms	= Obj->Forms;
+				if(Forms)	Forms->Delete(list->Strings[2]);
+
+			}
+		}
+		Modules.Inform(HData());
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+/*
+//----------------------------------------------
+int		CloseForms(lua_State*		lvm){
+
+	if(stop)	Stop(lvm);
+	Application->ProcessMessages();
+
+	try{
+		int count	= lua_gettop(lvm);
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		IForms*		Forms 	= NULL;
+		if(count == 0){
+
+			Modules.First();
+			while(!Modules.Eof){
+
+				Mod = Modules.Value;
+				Mod->First();
+				while(!Mod->Eof){
+					Forms = Mod->Value->Forms;
+					if(Forms)	Forms->Clear();
+					Mod->Next();
+				}
+				Modules.Next();
+
+			}
+
+		}else if(count == 1){
+
+			String name	= lua_tostring(lvm,1);
+			HPtr<TStringList>	list;
+			list.Initialize();
+			Wrap(name,list,"/");
+
+
+
+			Mod = Modules[name];
+
+			Mod->First();
+			while(!Mod->Eof){
+				Forms = Mod->Value->Forms;
+				if(Forms)	Forms->Clear();
+				Mod->Next();
+			}
+
+		}else{
+
+        }
+
+
+		Modules.Inform(HData());
+
+	}catch(...){;}
+	return 1;
+};
+
+*/
+
+//------------------------------------------------
+int		FormFind(lua_State*		lvm){
+
+	bool res = false;
+	try{
+		int count	= lua_gettop(lvm);
+		String name	= lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(name);
+
+		if(list->Count >= 3){
+
+			IModule* 	Mod 	= NULL;
+			IObject*	Obj 	= NULL;
+			IForms*		Forms	= NULL;
+
+			Mod = Modules[list->Strings[0]];
+			if(Mod)		Obj = (*Mod)[list->Strings[1]];
+			if(Obj)		res	= Obj->Forms->Find(list->Strings[2]);
+		}
+
+	}catch(...){;}
+
+	lua_pushboolean(lvm,res);
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+//--------------------------------------------
+int 	FormShow(lua_State*		lvm){
+
+	try{
+
+		int count   	= lua_gettop(lvm);
+		String str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		IForms*		Forms 	= NULL;
+		TForm*		Form	= NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod){
+
+			Obj = (*Mod)[list->Strings[1]];
+			if(Obj){
+
+				Forms 	= Obj->Forms;
+				Form 	= *(*Forms)[list->Strings[2]];
+				if(Form){
+					if(!Form->Visible)	Form->Show();
+				}
+			}
+//			Modules.Inform(HData());
+		};
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//--------------------------------------------
+int 	FormHide(lua_State*		lvm){
+
+	try{
+		int count  = lua_gettop(lvm);
+		String str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		IForms*		Forms 	= NULL;
+		TForm*		Form	= NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod){
+
+			Obj = (*Mod)[list->Strings[1]];
+			if(Obj){
+
+				Forms 	= Obj->Forms;
+				Form 	= *(*Forms)[list->Strings[2]];
+				if(Form){
+					if(Form->Visible)	Form->Hide();
+				}
+			}
+//			Modules.Inform(HData());
+		};
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//--------------------------------------------
+int 	FormWidth(lua_State*		lvm){
+
+	try{
+		int count  = lua_gettop(lvm);
+		String str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		IForms*		Forms 	= NULL;
+		TForm*		Form	= NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod){
+
+			Obj = (*Mod)[list->Strings[1]];
+			if(Obj){
+
+				Forms 	= Obj->Forms;
+				Form 	= *(*Forms)[list->Strings[2]];
+				TWinControl*   Host = Form->HostDockSite;
+				int t	= lua_tointeger(lvm, 2);
+				if(Host)	Form->Width = t;
+				else{
+					//???
+                }
+			}
+//			Modules.Inform(HData());
+		};
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//--------------------------------------------
+int 	FormHeight(lua_State*		lvm){
+
+	try{
+		int count  = lua_gettop(lvm);
+		String str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		IForms*		Forms 	= NULL;
+		TForm*		Form	= NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod){
+
+			Obj = (*Mod)[list->Strings[1]];
+			if(Obj){
+
+				Forms 	= Obj->Forms;
+				Form 	= *(*Forms)[list->Strings[2]];
+				TWinControl*   Host = Form->HostDockSite;
+				int t	= lua_tointeger(lvm, 2);
+				if(!Host) Form->Height = t;
+				else{
+					//???
+                }
+			}
+//			Modules.Inform(HData());
+		};
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//==================================================================
+int 	VarSet(lua_State*		lvm){
+
+	try{
+		int count  	= lua_gettop(lvm);
+		String str 	= lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		String addr = list->Strings[0];
+
+		HData H = (*Global->Data);
+		HData P;
+		if((H.Find(addr))&&(H[addr].Type == TYPE_OBJECT))	P = H[addr];
+		else											   	P = H.AddObject(addr);
+
+		for(int i = 1; i < list->Count; i++){
+			addr = list->Strings[i];
+			if((P.Find(addr))&&(P[addr].Type == TYPE_OBJECT)) 	P = P[addr];
+			else						 						P = P.AddObject(addr);
+		}
+
+		if(count > 1){
+
+			if(lua_isboolean(lvm,2)){
+				if(lua_toboolean(lvm,2))	P.String = "true";
+				else						P.String = "false";
+			}else							P.String = lua_tostring(lvm,2);
+
+		}
+		H.String;
+		(*Global->Data).AddObject(list->Strings[0]).String = H[list->Strings[0]];
+		lua_pushstring(lvm, AnsiString(list->Strings[0]).c_str());
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//--------------------------------------------
+int 	VarGet(lua_State*		lvm){
+
+	try{
+		int count   	= lua_gettop(lvm);
+		String S		= lua_tostring(lvm,1);
+
+		HData H = (*Global->Data).Get(S);
+
+		switch(H.Type){
+			case TYPE_INT: 		lua_pushnumber(lvm, H);
+								break;
+			case TYPE_LONG:		lua_pushnumber(lvm, H);
+								break;
+			case TYPE_FLOAT:	lua_pushnumber(lvm, H);
+								break;
+			case TYPE_BOOL:		lua_pushboolean(lvm, H);
+								break;
+			default:			lua_pushstring(lvm, AnsiString(H.String).c_str());
+
+		}
+
+	}catch(...){lua_pushstring(lvm, "");}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//--------------------------------------------
+int 	VarClose(lua_State*		lvm){
+
+	try{
+
+		int count 	= lua_gettop(lvm);
+		if(count == 0)		(*Global->Data)["VARIABLES"].Clear();
+		else{
+
+			String str 	= lua_tostring(lvm,1);
+			HPtr<TStringList>	list = Wrap(str);
+
+			HData H = (*Global->Data);
+
+			for(int i = 0; i < list->Count-1; i++){
+				H = H[list->Strings[i]];
+			}
+
+			H.Delete(list->Strings[list->Count-1]);
+		}
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,0);
+	return 0;
+};
+
+//==============================================================================
+int CommandSet(lua_State*		lvm){
+
+	try{
+
+		int count 	= lua_gettop(lvm);
+		String str 	= lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod = NULL;
+		IObject*	Obj = NULL;
+		ICommand*	Com = NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod) Obj = (*Mod)[list->Strings[1]];
+		if(Obj)	Com = (*Obj->Commands)[list->Strings[2]];
+
+		if(count > 1){
+
+			str 	= lua_tostring(lvm,2);
+			list	= Wrap(str);
+
+		}
+
+		if(count == 2){
+
+			HData H = (*Global->Data).Get(str);
+/*			for(int i = 0; i<list->Count;i++){
+				H = H[list->Strings[i]];
+			}   */
+			if(Com)	*Com = H;
+
+		}else if(count == 3){
+
+			HData H;
+			HData P = H;
+			for(int i = 0; i < list->Count; i++){
+				String addr = list->Strings[i];
+				P = P.AddObject(addr);
+			}
+
+			if(lua_isboolean(lvm,3)){
+				if(lua_toboolean(lvm,3))	P.String = "true";
+				else						P.String = "false";
+			}else							P.String = lua_tostring(lvm,3);
+			H.String;
+			if(Com)	*Com = H;
+		}
+		Com->Execute();
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//----------------------------------------------
+int CommandGet(lua_State*		lvm){
+
+	try{
+
+		int count 	= lua_gettop(lvm);
+		String str 	= lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod = NULL;
+		IObject*	Obj = NULL;
+		ICommand*	Com = NULL;
+
+		Mod 		= Modules[list->Strings[0]];
+		if(Mod) Obj = (*Mod)[list->Strings[1]];
+		if(Obj)	Com = (*Obj->Commands)[list->Strings[2]];
+
+		HData H;
+		if(Com)	H.String 	= *Com;
+
+		if(count == 1){
+
+			for(int i = 3; i < list->Count; i++){
+				H = H[list->Strings[i]];
+			}
+			switch(H.Type){
+				case TYPE_INT: 		lua_pushnumber(lvm, H);
+									break;
+				case TYPE_LONG:		lua_pushnumber(lvm, H);
+									break;
+				case TYPE_FLOAT:	lua_pushnumber(lvm, H);
+									break;
+				case TYPE_BOOL:		lua_pushboolean(lvm, H);
+									break;
+				default:			lua_pushstring(lvm, AnsiString(H.String).c_str());
+			}
+
+		}else
+		if(count == 2){
+
+			String addr = lua_tostring(lvm,2);
+			HData P 	= (*Global->Data).Get(addr);
+			if(P.Type != TYPE_NULL){
+				if(Com)	P.String	= *Com;
+				switch(P.Type){
+					case TYPE_INT: 		lua_pushnumber(lvm, P);
+											break;
+					case TYPE_LONG:		lua_pushnumber(lvm, P);
+											break;
+					case TYPE_FLOAT:	lua_pushnumber(lvm, P);
+											break;
+					case TYPE_BOOL:		lua_pushboolean(lvm, P);
+											break;
+				default:			lua_pushstring(lvm, AnsiString(P.String).c_str());
+
+				}
+			}
+
+		}
+
+
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//==============================================================================
+int 	DataSet(lua_State*		lvm){
+
+	try{
+
+		int count   	= lua_gettop(lvm);
+//		if(count != 2)	return 0;
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		ICommands*	Coms	= NULL;
+		ICommand*	Com		= NULL;
+
+		String A = lua_tostring(lvm,1);
+		HPtr<TStringList>	listA = Wrap(A);
+
+		HData H;
+		HData P;
+
+		if(listA->Count < 2){
+        	Application->ProcessMessages();
+			if(stop)	return lua_yield(lvm,0);
+			return 0;
+		}else{
+
+			Mod 				= Modules[listA->Strings[0]];
+			if(Mod) 	Obj 	= (*Mod)[listA->Strings[1]];
+			if(Obj)		Coms 	= Obj->Commands;
+			if(Coms) 	Com 	= (*Coms)["Set"];
+			if(!Com){
+				Application->ProcessMessages();
+				if(stop)	return lua_yield(lvm,0);
+				return 0;
+			}
+		}
+
+		if(count == 1){
+
+			for(int i = 2; i < listA->Count-1; i++){
+				if(i == 2)	P = H.AddObject(listA->Strings[2]);
+				else		P = P.AddObject(listA->Strings[i]);
+			}
+			P.String = listA->Strings[listA->Count-1];
+
+		}else
+		if(listA->Count == 2){
+
+			if(!lua_isstring(lvm,2)){
+				Application->ProcessMessages();
+				if(stop)	return lua_yield(lvm,0);
+				return 0;
+			}
+
+			String B = lua_tostring(lvm,2);
+			P = (*Global->Data).Get(B);
+
+			if(P.Type != TYPE_NULL)	H.String = P;
+			else{
+
+				HPtr<TStringList>	listB = Wrap(B);
+				for(int i = 0; i < listB->Count-1; i++){
+					if(i == 0)	P = H.AddObject(listB->Strings[0]);
+					else		P = P.AddObject(listB->Strings[i]);
+				}
+				P.String = listB->Strings[listB->Count-1];
+            }
+		}else{
+
+			if(!lua_isstring(lvm,2)){
+				Application->ProcessMessages();
+				if(stop)	return lua_yield(lvm,0);
+				return 0;
+			}
+
+			String B = lua_tostring(lvm,2);
+			HPtr<TStringList>	listB = Wrap(B);
+			for(int i = 2; i < listA->Count; i++){
+				if(i == 2)	P = H.AddObject(listA->Strings[2]);
+				else		P = P.AddObject(listA->Strings[i]);
+			}
+			for(int i = 0; i < listB->Count-1; i++){
+				P = P.AddObject(listB->Strings[i]);
+			}
+			P.String = listB->Strings[listB->Count-1];
+
+		}
+//		Obj->SetData(H);
+		Com->SetData(H);
+		Com->Execute();
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,0);
+	return 1;
+
+};
+
+//--------------------------------------------
+int 	DataGet(lua_State*		lvm){
+
+	try{
+		int count   	= lua_gettop(lvm);
+
+		String str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list = Wrap(str);
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		ICommands*	Coms	= NULL;
+		ICommand*	Com		= NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod) Obj = (*Mod)[list->Strings[1]];
+		if(Obj)	Coms = Obj->Commands;
+		if(Coms) Com = (*Coms)["Get"];
+		if(!Com){
+			lua_pushstring(lvm,"");
+			return 1;
+		}
+		Com->Execute();
+		HData H = Com->GetData();
+
+		if(count == 1){
+
+			for(int i = 2; i < list->Count; i++){
+				H = H[list->Strings[i]];
+			}
+			switch(H.Type){
+				case TYPE_INT: 		lua_pushnumber(lvm, H);
+									break;
+				case TYPE_LONG:		lua_pushnumber(lvm, H);
+									break;
+				case TYPE_FLOAT:	lua_pushnumber(lvm, H);
+									break;
+				case TYPE_BOOL:		lua_pushboolean(lvm, H);
+									break;
+				default:			lua_pushstring(lvm, AnsiString(H.String).c_str());
+			}
+
+		}else{
+
+			String addr = lua_tostring(lvm,2);
+			HData H 	= (*Global->Data).Get(addr);
+			if(H.Type != TYPE_NULL){
+				H.String	= Com->GetData();
+				switch(H.Type){
+					case TYPE_INT: 		lua_pushnumber(lvm, H);
+										break;
+					case TYPE_LONG:		lua_pushnumber(lvm, H);
+										break;
+					case TYPE_FLOAT:	lua_pushnumber(lvm, H);
+										break;
+					case TYPE_BOOL:		lua_pushboolean(lvm, H);
+										break;
+					default:			lua_pushstring(lvm, AnsiString(H.String).c_str());
+
+				}
+			}
+		}
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+/*
+//==============================================================================
+int		WSet(lua_State*		lvm){
+
+	try{
+		int count   	= lua_gettop(lvm);
+		if(count < 2){
+			employed = false;
+			return 1;
+		}
+
+		std::string str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list;
+		list.Initialize();
+		Wrap(str.c_str(),list,".");
+		if(list->Count < 3){
+			Application->ProcessMessages();
+			if(stop)	return lua_yield(lvm,1);
+			return 1;
+		}
+
+		IModule* 	Mod = NULL;
+		IObject*	Obj = NULL;
+		ICommand*	Com = NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod) Obj = (*Mod)[list->Strings[1]];
+		if(Obj)	Com = (*Obj->Commands)[list->Strings[2]];
+
+		HData H = DReg;
+		H 		= H["VARIABLES"];
+		str 	= lua_tostring(lvm,2);
+		Wrap(str.c_str(),list,".");
+		for(int i = 0; i<list->Count;i++){
+			H = H[list->Strings[i]];
+		}
+		String S = H;
+		*Com = H;
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+
+};
+
+//---------------------------------
+int Run(lua_State*		lvm){
+
+	try{
+		int count   	= lua_gettop(lvm);
+		std::string str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list;
+		list.Initialize();
+		Wrap(str.c_str(),list,"/");
+		if(list->Count < 3){
+			Application->ProcessMessages();
+			if(stop)	return lua_yield(lvm,1);
+			return 1;
+		}
+
+		IModule* 	Mod = NULL;
+		IObject*	Obj = NULL;
+		ICommand*	Com = NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod) Obj = (*Mod)[list->Strings[1]];
+		if(Obj)	Com = (*Obj->Commands)[list->Strings[2]];
+		if(Com)	Com->Execute();
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+
+};      */
+
+//----------------------------------------------
+
+
+
+
+
+
+
+
+//--------------------------------------------
+int 	CreateData(lua_State*		lvm){
+
+	try{
+		int count   	= lua_gettop(lvm);
+		std::string str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list;
+		list.Initialize();
+		Wrap(str.c_str(),list,"/");
+
+		HData H;
+		HData P;
+		P = H.AddObject(list->Strings[0]);
+		for(int i = 1; i < list->Count; i++){
+			P = P.AddObject(list->Strings[i]);
+		}
+
+		if(count > 1){
+			std::string str = lua_tostring(lvm,2);
+			P.String = str.c_str();
+		}
+		H.String;
+		(*Global->Data)["VARIABLES"].AddObject(list->Strings[0]).String = H[list->Strings[0]];
+		lua_pushstring(lvm, AnsiString(H.String).c_str());
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//--------------------------------------------
+int 	CloseData(lua_State*		lvm){
+
+	Application->ProcessMessages();
+};
+
+//--------------------------------------------
+int 	CreateVar(lua_State*		lvm){
+
+	try{
+		int count   	= lua_gettop(lvm);
+		std::string str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list;
+		list.Initialize();
+		Wrap(str.c_str(),list,"/");
+		String addr = list->Strings[0];
+
+		HData H = (*Global->Data)["VARIABLES"];
+		HData P;
+		if((H.Find(addr))&&(H[addr].Type == TYPE_OBJECT))	P = H[addr];
+		else											   	P = H.AddObject(addr);
+
+		for(int i = 1; i < list->Count; i++){
+			addr = list->Strings[i];
+			if((P.Find(addr))&&(P[addr].Type == TYPE_OBJECT)) 	P = P[addr];
+			else						 						P = P.AddObject(addr);
+		}
+
+		if(count > 1){
+
+			if(lua_isboolean(lvm,2)){
+				if(lua_toboolean(lvm,2))	P.String = "true";
+				else						P.String = "false";
+			}else							P.String = lua_tostring(lvm,2);
+
+		}
+		H.String;
+		(*Global->Data)["VARIABLES"].AddObject(list->Strings[0]).String = H[list->Strings[0]];
+		lua_pushstring(lvm, AnsiString(list->Strings[0]).c_str());
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+
+};
+
+//-------------------------------------------------
+int CreateSheet(lua_State*		lvm){
+
+	if(stop)	Return(lvm);
+	if(Page)	Page->Add();
+};
+
+//-------------------------------------------------
+int NameSheet(lua_State*		lvm){
+
+	if(!Page){
+		Application->ProcessMessages();
+		if(stop)	return lua_yield(lvm,0);
+		return 0;
+	}
+
+	try{
+		int count   	= lua_gettop(lvm);
+		int num			= lua_tointeger(lvm,1);
+		String name		= lua_tostring(lvm,2);
+
+		WSheet* sheet = (WSheet*)(Page->Page->Pages[num-1]);
+		sheet->Caption = name;
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,0);
+	return 0;
+};
+
+//-------------------------------------------------
+int CloseSheet(lua_State*		lvm){
+
+	if(!Page){
+		Application->ProcessMessages();
+		if(stop)	return lua_yield(lvm,0);
+		return 0;
+	}
+
+	try{
+		int count   	= lua_gettop(lvm);
+		if(count){
+
+			int num			= lua_tointeger(lvm,1);
+			Page->Delete(num-1);
+		}else{
+			if(Page)	Page->Clear();
+        }
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,0);
+	return 0;
+};
+
+//-------------------------------------------------
+int CloseSheets(lua_State*		lvm){
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,0);
+	if(Page)	Page->Clear();
+};
+
+//-------------------------------------------------
+int FormOnSheet(lua_State*		lvm){
+
+	try{
+		int count   	= lua_gettop(lvm);
+		std::string str = lua_tostring(lvm,1);
+		HPtr<TStringList>	list;
+		list.Initialize();
+		Wrap(str.c_str(),list,"/");
+		if(list->Count < 3){
+//			employed = false;
+			return 1;
+		}
+
+		IModule* 	Mod 	= NULL;
+		IObject*	Obj 	= NULL;
+		IForms*		Forms 	= NULL;
+		TForm*		Form	= NULL;
+
+		Mod = Modules[list->Strings[0]];
+		if(Mod){
+			Obj = (*Mod)[list->Strings[1]];
+			if(Obj){
+				Forms = Obj->Forms;
+				Form = *(*Forms)[list->Strings[2]];
+				if(Form){
+
+					std::string str = lua_tostring(lvm,3);
+					TAlign align = alTop;
+					String Al = String(str.c_str()).LowerCase();
+					if(Al == "top")			align = alTop;
+					else if(Al == "bottom")	align = alBottom;
+					else if(Al == "left")	align = alLeft;
+					else if(Al == "right")	align = alRight;
+
+					if(lua_isnumber(lvm,2)){
+						int num = lua_tointeger(lvm,2);
+						if(num > Page->Count){
+ //							employed = false;
+							return 1;
+						}
+						WSheet* sheet = (WSheet*)(Page->Page->Pages[num-1]);
+						if(sheet->Panel->DockClientCount){
+							Form->ManualDock(sheet->Panel);
+							if(!Form->Visible)	Form->Show();
+							sheet->Panel->DockManager->InsertControl(Form,align,sheet->Panel);
+						}else{
+							Form->ManualDock(sheet->Panel,Form,alClient);
+							if(!Form->Visible)	Form->Show();
+						}
+
+
+					}else{
+						String panel 	= lua_tostring(lvm,2);
+						TPanel*	Panel 	= NULL;
+						if(panel == "bottom")		Panel = BPnl;
+						else if(panel == "left")	Panel = LPnl;
+						else if(panel == "right")	Panel = RPnl;
+
+						if(Panel){
+							Form->ManualDock(Panel);
+							if(!Form->Visible)	Form->Show();
+							Panel->DockManager->InsertControl(Form,align,Panel);
+						}
+					}
+
+
+
+//
+//
+
+
+
+				}
+			}
+			Modules.Inform(HData());
+		};// Obj = (*Mod)[list->Strings[1]];
+//		if(Obj)	Com = (*Obj->Commands)[list->Strings[2]];
+//		if(Com)	Com->Execute();
+
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,1);
+	return 1;
+};
+
+//------------------------------------------
+int	ExecuteFile(lua_State*		lvm){
+
+
+/*	try{
+		int count   	= lua_gettop(lvm);
+		String S	 	= lua_tostring(lvm,1);
+
+		if(FileExists(S)){
+			HPtr<TStringList>	list;
+			list.Initialize();
+			list->LoadFromFile(S);
+			ULua	lua;
+			lua.Execute(list->Text);
+		}
+	}catch(...){;}
+
+	Application->ProcessMessages();
+	if(stop)	return lua_yield(lvm,0);  */
+	return 0;
+};
+

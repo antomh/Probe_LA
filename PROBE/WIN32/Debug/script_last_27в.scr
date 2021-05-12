@@ -1,0 +1,75 @@
+--functions
+function set_default()
+    set_voltage(3, 0);
+    set_current(3, 0.02);
+    enable(3);
+
+    set_amplitude(0,1);
+    set_offset(0,0);
+    mgqs_enable(0);
+
+end;
+-----------------------------------------------------
+function step_by_step(channel, first_code, stp)
+    
+    local code = first_code;
+    
+    set_code(channel, first_code);
+    sleep(300);
+    local tmp = time(channel);
+--console(tmp)
+    while tmp < 500 do
+        code1 = code + stp;
+        set_code(channel, code1);
+        sleep(300);
+        local tmp1 = time(channel);
+        
+        if tmp1 > 500  then
+            break;
+        else
+            code = code1;
+            tmp  = tmp1;
+        end;
+        if code >= 4096 then return first_code; end; 
+        console(''..code..' >> '..tmp);
+    end
+    return code;
+end
+--end_functions
+local from = 0;
+local to     = 27;
+local step  = 0.5;
+local k      = 1.04;
+local LOW_COMPARATOR = 0;
+local HI_COMPARATOR     = 1;
+
+mode_27();
+set_default();
+
+set_voltage(3, 4);
+
+
+---[[
+initialize();
+
+for v = from, to, step do
+
+    set_voltage(3, v);
+    code = step_by_step(LOW_COMPARATOR, 
+2000,100);
+    code = step_by_step(LOW_COMPARATOR, code, 
+25);
+    code = step_by_step(LOW_COMPARATOR, code, 
+5);
+    code = step_by_step(LOW_COMPARATOR, code, 
+1);
+    add_27v(LOW_COMPARATOR, v/k, code);   
+    console(''..code..'>>'..v..' Â');
+end;
+--]]
+
+save();
+
+
+
+

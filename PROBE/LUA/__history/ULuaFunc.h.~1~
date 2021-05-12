@@ -1,0 +1,85 @@
+//---------------------------------------------------------------------------
+
+#ifndef ULuaFuncH
+#define ULuaFuncH
+#include "lua.hpp"
+#include "UGlobal.h"
+#include <System.Classes.hpp>
+#include <Vcl.Controls.hpp>
+#include <Vcl.StdCtrls.hpp>
+#include <Vcl.Forms.hpp>
+#include <Dialogs.hpp>
+#include "UModules.h"
+//---------------------------------------------------------------------------
+const int 		CHECK_GOOD		= 1;
+const int   	CHECK_BAD		= 0;
+const int   	CHECK_UNKNOWN	= -1;
+
+const int		STATE_STOP		= 0;
+const int		STATE_PROCEED	= 1;
+const int		STATE_PAUSED 	= 2;
+const int		STATE_WAIT 		= 3;
+
+const String	WAIT	=  	"WAIT";
+const String	STOP	= 	"STOP";
+const String	PROCEED	=	"PROCEED";
+const String	PAUSED	=	"PAUSED";
+//==============================================================================
+
+//---- Вспомогательные функции -----------
+void  Wrap(String source, TStrings* receiver, String delimiters);
+HPtr<TStringList>	Wrap(String source);
+
+//---- Служебные функции -------------------------
+int		Return		(lua_State*	lvm);
+int		Pause		(lua_State*	lvm);
+int		Message		(lua_State*	lvm);
+int 	USleep		(lua_State*	lvm);
+//int 	Wait		(lua_State*	lvm);
+
+//---- Функции результата -------------------------
+int		FTrue		(lua_State*	lvm);
+int		FFalse		(lua_State*	lvm);
+int		Request		(lua_State*	lvm);
+int		Stat		(lua_State*	lvm);
+int		Debug		(lua_State*	lvm);
+
+//---- Функции работы с объектами -----------------
+int		ObjectCreate(lua_State*	lvm);
+int		ObjectClose	(lua_State*	lvm);
+int		ObjectFind	(lua_State*	lvm);
+
+//---- Функции работы с формами -------------------
+int 	FormCreate	(lua_State*	lvm);
+int 	FormClose	(lua_State*	lvm);
+int		FormFind	(lua_State*	lvm);
+int 	FormShow	(lua_State*	lvm);
+int 	FormHide	(lua_State*	lvm);
+int 	FormWidth	(lua_State*	lvm);
+int 	FormHeight	(lua_State*	lvm);
+
+//---- Функции работы с реестром данных -----------
+int 	VarSet		(lua_State*	lvm);
+int 	VarGet		(lua_State*	lvm);
+int 	VarClose	(lua_State*	lvm);
+int 	CreateVar	(lua_State*	lvm);     //-
+
+//---- Функции работы с командами объектов --------
+int 	CommandSet	(lua_State*	lvm);
+int 	CommandGet	(lua_State*	lvm);
+
+//---- Функции работы с данными объектов ----------
+int 	DataSet		(lua_State*	lvm);
+int 	DataGet		(lua_State*	lvm);
+int 	CreateData	(lua_State*	lvm);
+int 	CloseData	(lua_State*	lvm);
+
+//---- Функции работы с вкладками -----------------
+int 	CreateSheet	(lua_State*	lvm);
+int 	NameSheet	(lua_State*	lvm);
+int 	CloseSheet	(lua_State*	lvm);
+int 	CloseSheets	(lua_State*	lvm);   //-
+int 	FormOnSheet	(lua_State*	lvm);
+int		ExecuteFile	(lua_State*	lvm);
+
+#endif

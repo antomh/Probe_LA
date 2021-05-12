@@ -1,0 +1,53 @@
+//---------------------------------------------------------------------------
+#ifndef ProbeH
+#define ProbeH
+
+#include "serial/Serial.h"
+#include "serial/ASerial.h"
+#include "Definition.h"
+
+class Probe {
+protected:
+	ASerial aSerial;    // COM port асинхронный
+	Serial serial;      // COM port синхронный
+
+	uint8_t buf[SERIAL_BUF_SIZE];	// буфер обмена данными
+	uint32_t bufLen;                // размер полезных данных буфера
+
+	HANDLE threadGetButtonState;    // поток опроса состояния кнопок
+	HANDLE mutexGetButtonState;     // синхронизация
+	void (*callbackBtnState)(uint8_t Run, uint8_t Up, uint8_t Down);
+
+public:
+	Probe();
+	~Probe();
+
+	void reset();
+
+	bool open(const std::string &name, DWORD baudRate);             // Подключиться к устройству
+	bool isOpened() const;                                          // Есть ли связь с устройством
+
+	bool getStatus(bool &Relay, uint16_t &DAC_A, uint16_t &DAC_B);  // Запрос статуса устройства (Рэле, ЦАП канал А, B)
+	bool setRelay(bool Relay);                                      // Установить состояние Рэле
+	bool setDAC_A(uint16_t DAC_A);                                  // Установить ЦАП канал А
+	bool setDAC_B(uint16_t DAC_B);                                  // Установить ЦАП канал В
+	bool setTableCount(u8 mode, i16 min, i16 max, u16 count);
+	bool setTablePacket(u8 mode, u16 offset, u16 count, u16 code[]);
+	bool getADC(uint16_t &ADC);                                     // Запрос значения АЦП
+	bool getDeviceID(std::string &ID);                              // Запрос ID устройства
+	bool getHiTime(uint16_t& time);
+	bool getLowTime(uint16_t& time);
+    bool getButtonState(uint8_t &Run, uint8_t &Up, uint8_t &Down);  // Запрос состояния кнопок (Run, Up, Down)
+
+	std::string getLastError() const;   // Запрос последней ошибки COM порта
+
+	// Запуск потока опроса состояния кнопок.
+    // Можно установить периодичность опроса в миллисекундах
+	// Можно передать указатель на функцию колбэка, которая будет вызываться при получении ответа от устройства
+	void runAutoButtonStateCheck(uint16_t askPeriod = 200, void (*callbackBState)(uint8_t Run, uint8_t Up, uint8_t Down) = NULL);
+	void stopAutoButtonStateCheck();    // Остановка потока опроса состояния кнопок
+	void updateBtnState();				// Вызывается только из потока
+};
+
+//---------------------------------------------------------------------------
+#endif

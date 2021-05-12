@@ -1,0 +1,263 @@
+//---------------------------------------------------------------------------
+
+#pragma hdrstop
+
+#include "UCalibrate.h"
+//---------------------------------------------------------------------------
+#pragma package(smart_init)
+
+//-------------------------------------
+HList	__fastcall wrap(String rules){
+
+	std::set<wchar_t>			separators;
+	std::set<wchar_t>::iterator	it;
+	separators.insert(L'\t');
+	separators.insert(L' ');
+
+	String buffer = EmptyStr;
+	HList list(true);
+
+	for(int  i = 1; i <= rules.Length(); i++){
+		it = separators.find(rules[i]);
+		if(it == separators.end()){
+			buffer += rules[i];
+		}else{
+			if(buffer != EmptyStr){
+				list->Add(Trim(buffer));
+				buffer	= EmptyStr;
+			}
+        }
+	}
+	if(buffer != EmptyStr)		list->Add(Trim(buffer));
+
+	return list;
+};
+//==============================================================================
+Calibrate::Calibrate(){
+
+
+};
+
+//-----------------------------
+Calibrate::~Calibrate(){
+
+
+};
+
+//-----------------------------
+void	__fastcall Calibrate::table_create(){
+
+	_v12l.clear();
+	_v12h.clear();
+
+	_v27l.clear();
+	_v27h.clear();
+};
+
+//-----------------------------
+void	__fastcall Calibrate::table_close(){
+
+	initialize_tables();
+	fill_12v();
+	fill_27v();
+
+};
+
+//-----------------------------
+void	__fastcall Calibrate::table_add_12v(u8 channel, i32 input_volt, i32 code){
+
+	if(input_volt > V12_MAX || input_volt < V12_MIN)	return;
+	if(code > CODE_MAX|| code < 0)			return;
+
+	pair<i32, i32 >	item(input_volt, code);
+	channel == 0? _v12l.insert(item): _v12h.insert(item);
+};
+
+//-----------------------------
+void	__fastcall Calibrate::table_add_27v(u8 channel, i32 input_volt, i32 code){
+
+	if(input_volt > V12_MAX || input_volt < V12_MIN)	return;
+	if(code > CODE_MAX|| code < 0)			return;
+
+	pair<i32, i32 >	item(input_volt, code);
+	channel == 0? _v27l.insert(item): _v27h.insert(item);
+};
+
+//-----------------------------
+i32		__fastcall Calibrate::volt_to_code_12v(i32 volt){          //1 - 10 mV
+
+	r64 k = 1.0*(CODE_MAX - CODE_MIN)/(V12_MAX - V12_MIN);
+	i32 c =	CODE_MIN - k*V12_MIN;
+	i32 d = 1.0*volt*k + c + 1;
+
+	if(d > CODE_MAX || d < CODE_MIN)	return -1;
+	return d;
+};
+
+//-----------------------------
+i32		__fastcall Calibrate::volt_to_code_27v(i32 volt){
+
+	r64 k = 1.0*(CODE_MAX - CODE_MIN)/(V27_MAX - V27_MIN);
+	i32 c =	CODE_MIN - k*V27_MIN;
+	i32 d = 1.0*volt*k + c + 1;
+
+	if(d > CODE_MAX || d < CODE_MIN)	return -1;
+	return d;
+};
+
+//-----------------------------
+void	__fastcall Calibrate::save_to_file(String filename){      //1 - 10 mV
+
+	HList list(true);
+	std::map<i32, pair<i32, i32> >::iterator it;
+
+	list->Add("//12V");
+	for(it = _v12.begin(); it != _v12.end(); it++){
+		String volt		= IntToStr(it->first);
+		String code1	= IntToStr(it->second.first);
+		String code2	= IntToStr(it->second.second);
+		String  str	= volt + "\t" + code1 + "\t" + code2;
+		list->Add(str);
+	}
+	list->Add("//27V");
+	for(it = _v27.begin(); it != _v27.end(); it++){
+		String volt		= IntToStr(it->first);
+		String code1	= IntToStr(it->second.first);
+		String code2	= IntToStr(it->second.second);
+		String  str	= volt + "\t" + code1 + "\t" + code2;
+		list->Add(str);
+	}
+
+	list->SaveToFile(filename);
+};
+
+//-----------------------------
+void	__fastcall Calibrate::load_from_file(String filename){
+
+	if(!FileExists(filename))	return;
+	HList list(true);
+
+	list->LoadFromFile(filename);
+	std::map<i32, pair<i32, i32> >*		pointer	= NULL;
+	try{
+		for(int i = 0; i < list->Count; i++){
+
+			if(list->Strings[i].Pos("//12V") == 1){
+				pointer = &_v12;
+				_v12.clear();
+			}else if(list->Strings[i].Pos("//27V") == 1){
+				pointer	= &_v27;
+				_v27.clear();
+			}else{
+				HList tri	= wrap(list->Strings[i]);
+				pair<i32, i32>				codes(StrToInt(tri->Strings[1]), StrToInt(tri->Strings[2]));
+				pair<i32, pair<i32, i32> >	item(StrToInt(tri->Strings[0]), codes);
+				pointer->insert(item);
+			}
+		}
+	}catch(...){
+		initialize_tables();
+//		low.clear();
+//		hi.clear();
+	};
+};
+
+//-----------------------------
+vector<i32> __fastcall Calibrate::get_voltage(u8 mode){
+
+
+};
+
+//-----------------------------
+vector<i32> __fastcall Calibrate::get_code(u8 mode){
+
+
+};
+
+//-----------------------------
+void	__fastcall	Calibrate::initialize_tables(){
+
+	_v12.clear();
+	_v27.clear();
+
+	pair<i32, i32>				codes_0(CODE_MIN, CODE_MIN);
+	pair<i32, i32>				codes_1(CODE_MAX, CODE_MAX);
+	pair<i32, pair<i32, i32> >	item_0(V12_MIN, codes_0);
+	pair<i32, pair<i32, i32> >	item_1(V12_MAX, codes_1);
+	pair<i32, pair<i32, i32> >	item_2(V27_MIN, codes_0);
+	pair<i32, pair<i32, i32> >	item_3(V27_MAX, codes_1);
+
+	_v12.insert(item_0);
+	_v12.insert(item_1);
+
+	_v27.insert(item_2);
+	_v27.insert(item_3);
+};
+
+//-----------------------------
+void	__fastcall	Calibrate::fill_12v(){
+
+	std::set<i32>			volts;
+	std::set<i32>::iterator v_it;
+
+	std::map<i32, i32 >::iterator	it;
+	std::map<i32, i32 >::iterator	it_low;
+	std::map<i32, i32 >::iterator	it_hi;
+	for(it = _v12l.begin(); it != _v12l.end(); it++){
+		volts.insert(it->first);
+	}
+	for(it = _v12h.begin(); it != _v12h.end(); it++){
+		volts.insert(it->first);
+	}
+
+	for(v_it = volts.begin(); v_it != volts.end(); v_it++){
+
+		it_low	= _v12l.find(*v_it);
+		it_hi	= _v12h.find(*v_it);
+
+		i32 code_low	= it_low == _v12l.end()? -1: it_low->second;
+		i32 code_hi		= it_hi  == _v12h.end()? -1: it_hi->second;
+
+		pair<i32, i32>				codes(code_low, code_hi);
+		pair<i32, pair<i32, i32> >	item(*v_it, codes);
+		_v12.insert(item);
+	}
+
+
+};
+
+//-----------------------------
+void	__fastcall	Calibrate::fill_27v(){
+
+	std::set<i32>			volts;
+	std::set<i32>::iterator v_it;
+
+	std::map<i32, i32 >::iterator	it;
+	std::map<i32, i32 >::iterator	it_low;
+	std::map<i32, i32 >::iterator	it_hi;
+	for(it = _v27l.begin(); it != _v27l.end(); it++){
+		volts.insert(it->first);
+	}
+	for(it = _v27h.begin(); it != _v27h.end(); it++){
+		volts.insert(it->first);
+	}
+
+	for(v_it = volts.begin(); v_it != volts.end(); v_it++){
+
+		it_low	= _v27l.find(*v_it);
+		it_hi	= _v27h.find(*v_it);
+
+		i32 code_low	= it_low == _v27l.end()? -1: it_low->second;
+		i32 code_hi		= it_hi  == _v27h.end()? -1: it_hi->second;
+
+		pair<i32, i32>				codes(code_low, code_hi);
+		pair<i32, pair<i32, i32> >	item(*v_it, codes);
+		_v27.insert(item);
+	}
+};
+
+//-----------------------------
+void	__fastcall message(String info){
+
+
+};

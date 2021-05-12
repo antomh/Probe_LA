@@ -1,0 +1,52 @@
+//---------------------------------------------------------------------------
+
+#ifndef ULuaFuncH
+#define ULuaFuncH
+#include "lua.hpp"
+#include <System.Classes.hpp>
+#include <Vcl.Controls.hpp>
+#include <Vcl.StdCtrls.hpp>
+#include <Vcl.Forms.hpp>
+#include <Dialogs.hpp>
+#include "Templates.h"
+#include "ULog.h"
+#include "UAnalizator.h"
+
+//---------------------------------------------------------------------------
+const int 		CHECK_GOOD		= 1;
+const int   	CHECK_BAD		= 0;
+const int   	CHECK_UNKNOWN	= -1;
+
+const int		STATE_STOP		= 0;
+const int		STATE_PROCEED	= 1;
+const int		STATE_PAUSED 	= 2;
+const int		STATE_WAIT 		= 3;
+
+const String	WAIT	=  	"WAIT";
+const String	STOP	= 	"STOP";
+const String	PROCEED	=	"PROCEED";
+const String	PAUSED	=	"PAUSED";
+
+
+//==============================================================================
+
+//---- Вспомогательные функции -----------
+void  	Wrap(String source, TStrings* receiver, String delimiters);
+HList	Wrap(String source);
+
+//---- Служебные функции -------------------------
+int		Return		(lua_State*	lvm);
+int		Pause		(lua_State*	lvm);
+int		Message		(lua_State*	lvm);
+int 	USleep		(lua_State*	lvm);
+
+int 	relay_on		(lua_State*	lvm);
+int 	relay_off		(lua_State*	lvm);
+
+int 	low		(lua_State*	lvm);
+int 	hi		(lua_State*	lvm);
+
+
+
+
+#endif

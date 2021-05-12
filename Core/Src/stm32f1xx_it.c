@@ -92,6 +92,8 @@ void HardFault_Handler(void)
   {
     /* USER CODE BEGIN W1_HardFault_IRQn 0 */
 	  printf("HardFault_IRQn");
+	  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+
     /* USER CODE END W1_HardFault_IRQn 0 */
   }
 }
