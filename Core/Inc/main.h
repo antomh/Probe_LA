@@ -88,6 +88,8 @@ uint32_t getCRC_table_a_m12();
 uint32_t getCRC_table_b_m12();
 uint32_t getCRC_table_a_m27();
 uint32_t getCRC_table_b_m27();
+
+void writeTable();
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
