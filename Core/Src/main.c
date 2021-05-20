@@ -16,6 +16,55 @@
   *
   ******************************************************************************
   */
+
+/*
+--------------------------------------------------------------------------
+BUG	: В цикле не прерывно идет установка цапов! Формируя цифровой шум. DONE: убарно из цикла
+BUG	: Ошибка в работе цап. При переключение в m27 цап принимает значения, но не устанавливет их! DONE: добавлена в библеотеку цап двоойна отправка команды, проблема устранена.
+BUG : set 4v-> set 5v -> M27 -> set 4v -> M12 -> set 6v (err:DAC не установил значения, но в ядре значения имеются!!!) DONE: изза ошибки работы ЦАП --> добалена функция отправки значений при устанвоке реле
+BUG : Доработать алгоритм установки реле! м.б. добавить в функции реле установку ЦАП по обоим каналам? DONE: Добавлено.
+DONE: Добавить серийный номер в щуп
+DONE: Добавить калибровочную таблицу в проект через t.py формируется - необходимо заполнять значениями в logic_calibration_table.с
+DONE: получить значение V , Поиск по значению напряжения V значение в калибровочной таблице VDAC
+--------------------------------------------------------------------------
+
+--> NOW
+--------------------------------------------------------------------------
+FIXME:Запись в память не работает
+TODO: Реализовать прием калибровочной таблицы. 0xOA:Прием калибровочной таблицы [0x0A][1-4][offset][count][data]
+TODO: Запись во флеш принятой новой калибровочной таблицы. [0x0D] data: 1B (0x00 - успешно; 0x01 - ошибка при записи)
+FIXME:Отправлять длину массива кратно 32b. не работает CRC --> HardFault, 
+TODO: Реализовать отправку CRC 1-4 таблицы [0x0B][1-4][CRC(1-4)]
+TODO: Установка цап реализованно только для канала A и режима m12. Нужно переписать с учетом режима работы. режим работы определяет какую таблицу использовать.	 
+--------------------------------------------------------------------------
+TODO: данная реализация плохо отрабатывает! TODO: Нужно переделать на EXTI+TIM
+TODO: Проверить первое состоянеи первоначальное состояние реле 27V | RelayState =|1:m12|0:m27|
+--------------------------------------------------------------------------
+FUTURE: Сформировать калиброчную таблицу через функцию. При остусвтие значения в таблице произвести интерполяцию
+--------------------------------------------------------------------------
+*/
+
+
+
+// Тестовые сборки
+#define DEBUG_SWO 			1
+// #define USE_FULL_ASSERT 	0
+#define TEST_UID 			1
+
+#define TEST_DAC 			1
+#define TEST_READ_BTN 		1 	//TODO: данная реализация плохо отрабатывает! TODO: Нужно переделать на EXTI+TIM
+#define TEST_TIM_CAPTURE 	1
+#define TEST_ADC 			1
+#define TEST_USB 			1
+#define USB_RESET 			0
+#define TEST_RELAY 			1
+#define DWT_INIT 			1
+
+#define TEST_FLASH_TABLE 	1	//FIXME: Запись в память не работает
+
+//--------------------------------------------------------------------------
+
+
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -182,8 +231,26 @@ uint32_t getCRC_table_b_m27()
 	return HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table.dacValB_m27, sizeof(DevNVRAM.calibration_table.dacValB_m27) / (sizeof(uint32_t) * 2));
 }
 //--------------------------------------------------------------------------
-
+#endif /* TEST_FLASH_TABLE */
 //**************************************************************************
+#if TEST_DAC
+// Старая реализация. для приема dgt значений цап.
+//void SetDacA(uint16_t da) {
+//	VDAC_A = da;
+//	DAC_AD5322_Ch2(&hspi1, VDAC_A);
+//}
+//void SetDacB(uint16_t db) {
+//	VDAC_B = db;
+//	DAC_AD5322_Ch2(&hspi1, VDAC_B);
+//}
+//void SetAllDAC() {
+//	DAC_AD5322_Ch1Ch2(&hspi1,VDAC_A,VDAC_B);
+//}
+//--------------------------------------------------------------------------
+uint16_t VDAC_A = 0;
+uint16_t VDAC_B = 0;
+// Новая реализация. для приема значений в напряжениях, с поиском по структуре DevNVRAM выгруженной из памяти.
+//TODO: Установка цап реализованно только для канала A и режима m12. Нужно переписать с учетом режима работы. режим работы определяет какую таблицу использовать.
 void SetDacA(int16_t da)
 {
 	VDAC_A = volt2dgt(&(DevNVRAM.calibration_table), da);
@@ -464,13 +531,40 @@ void USB_RESET(void)
 	}; // немного ждём
 }
 #endif /* USB_RESET */
-//uint8_t  flash_write(){
-//	return 0x00;
-//}
-
-uint8_t RelayState = 0x00; //TODO: проверить первое состоянеи первоначальное состояние реле 27V
-bool changeTableFlag = false;
-void runCommands(uint8_t *Buf, uint32_t *Len)
+//**************************************************************************
+#if TEST_RELAY
+enum RelState {m12 = 0x01, m27 = 0x00}; //RelayState =|1:m12|0:m27|
+bool RelayState = m12; //TODO: проверить первое состояние --> первоначальное состояние реле 27V FIXME: Нужно изменить на m12 и подправить у Йоноса!
+#endif /* TEST_RELAY */
+//**************************************************************************
+#if TEST_USB
+void runCommands(uint8_t *Buf, uint32_t *Len) 		// Обработчик USB
+/*	command
+	0x01 - включение рэле							data: 1B (0x00 - выключить; 0x01 - включить)	answer: 0x01 + 1B status
+	0x02 - ЦАП канал А								data: 2B (значение)								answer: 0x02 + 1B status
+	0x03 - ЦАП канал B								data: 2B (значение)								answer: 0x03 + 1B status
+	0x04 - АЦП запрос значения						data: 0B										answer: 0x04 + 2B value
+	0x05 - запрос состояния (Relay, DA, DB)			data: 0B										answer: 0x05 + 1B состиояние рэле + 2B значение ЦАП канал А + 2B значение ЦАП канал B
+	0x06 - запрос состояния кнопок (Run, Up, Down)	data: 0B										answer: 0x06 + 1B состояние кнопки Run + 1B состояние кнопки Up + 1B состояние кнопки Down
+	0x07 - запрос ID устройства
+	("SN+WW+YY+NNN")									data: 0B										answer: 0x07 + 9B ID ("SN+WW+YY+NNN") SN1121001- 11 неделя-21год - 001 порядковый номер изготовления
+	0х08 - запрос измеренной длительности			data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x08 + 1B status
+	0х09 - запрос измеренной длительности			data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x08 + 1B status
+	--------------------------------------------------------------------------
+	0х0C - Прием длины калибровочной таблицы [0x0C][Длина][???]				0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
+	0х0B - Отправка CRC 1-4 таблицы [0x0B][1-4][CRC(1-4)]	answer:
+	0х0A - Прием калибровочной таблицы [0x0A][1-4][offset][count][data] 	answer: [0x0A]+[1-4]+[offset]+[count]+[status] (0x00 - сработал; 0x01 - не сработал)
+	0х0D - Запись во флеш калибровочной таблицы [0x0D] data: 1B (0x00 - успешно; 0x01 - ошибка при записи)	answer: 0x0D + 1B status
+	--------------------------------------------------------------------------
+	status
+	0x00 - успешно
+	0x01 - ошибка
+	--------------------------------------------------------------------------
+	Калибровка 
+	На вход щупа подается семетричная пила с частотой 1кГц с оффестом установленным на ип.
+	после компарирования сигнала МК измеряет длительность импульса
+	т.к. 1 кГц соотвествет длительности в 500 мс то это означает что мы попапали в полуку офсета.
+	--------------------------------------------------------------------------*/
 {
 	if (*Len < 1)
 		return;
@@ -480,47 +574,15 @@ void runCommands(uint8_t *Buf, uint32_t *Len)
 	uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 	uint16_t tVal16;
 	uint8_t cmd = Buf[0];
-
-	// command
-	// 0x01 - включение рэле							data: 1B (0x00 - выключить; 0x01 - включить)	answer: 0x01 + 1B status
-	// 0x02 - ЦАП канал А								data: 2B (значение)								answer: 0x02 + 1B status
-	// 0x03 - ЦАП канал B								data: 2B (значение)								answer: 0x03 + 1B status
-	// 0x04 - АЦП запрос значения						data: 0B										answer: 0x04 + 2B value
-	// 0x05 - запрос состояния (Relay, DA, DB)			data: 0B										answer: 0x05 + 1B состиояние рэле + 2B значение ЦАП канал А + 2B значение ЦАП канал B
-	// 0x06 - запрос состояния кнопок (Run, Up, Down)	data: 0B										answer: 0x06 + 1B состояние кнопки Run + 1B состояние кнопки Up + 1B состояние кнопки Down
-	// 0x07 - запрос ID устройства
-	// ("SN+WW+YY+NNN")									data: 0B										answer: 0x07 + 9B ID ("SN+WW+YY+NNN") SN1121001- 11 неделя-21год - 001 порядковый номер изготовления
-	// 0х08 - запрос измеренной длительности			data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x08 + 1B status
-	// 0х09 - запрос измеренной длительности			data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x08 + 1B status
-
 	//--------------------------------------------------------------------------
-	// 0х0C - запрос размера калибровочной таблицы		data: 0B ([длина калибровочной таблицы ]				0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
-	// 0х0B - команда записи во флеш					data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
-	// 0х0A - прием калибровочной таблицы				data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
-	// 0х0D - запрос срабатывания компаратора inHH		data: 0B (0x00 - сработал; 0x01 - не сработал)	answer: 0x09 + 1B status
-
-	// status
-	// 0x00 - успешно
-	// 0x01 - ошибка
-
-	// Калибровка
-	/* Одна итерация: на входе щупа устанавливается заданное напряжение.
-	 * Начинаем менять входные коды ЦАП верхнего и нижнего уровня
-	 * до того момента пока на выходах компараторов не появится 1.
-	 * Т.е. каждый раз когда мы меняем входной код - мы запрашиваем контроллер щупа о состоянии выходов компаратора.
-	 */
-
-	//--------------------------------------------------------------------------
-
-	
-	if (cmd == 0x01)		// Relay:1 - 12V	[0x01 - 0x01]
+	if 		(cmd == 0x01)	// Relay:1 - 12V	[0x01 - 0x01]
 	{
 		if (*Len >= 2 && (Buf[1] == 0x01 || Buf[1] == 0x00))
 		{
 			if (Buf[1] == 0x01)
 			{
 				HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_SET);
-				RelayState = 0x01;
+				RelayState = m12;
 				printf("RelayState:12V - %d \n", RelayState);
 				SetAllDAC();
 
@@ -532,7 +594,7 @@ void runCommands(uint8_t *Buf, uint32_t *Len)
 			else if (Buf[1] == 0x00)
 			{
 				HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_RESET);
-				RelayState = 0x00;
+				RelayState = m27;
 				printf("RelayState:27V - %d \n", RelayState);
 				SetAllDAC();
 
@@ -651,17 +713,12 @@ void runCommands(uint8_t *Buf, uint32_t *Len)
 		memcpy(UserTxBufferFS + 2, str, strlen(str));
 		CDC_Transmit_FS(UserTxBufferFS, strlen(str) + 2);
 		return;
-		//--------------------------------------------------------------------------
-		// Калибровка
-		/* TODO: изменить описание калиброки относительно измерения длительности
-	 * Одна итерация: на входе щупа устанавливается заданное напряжение.
-	 * Начинаем менять входные коды ЦАП верхнего и нижнего уровня
-	 * до того момента пока на выходах компараторов не появится 1.
-	 * Т.е. каждый раз когда мы меняем входной код - мы запрашиваем контроллер щупа о состоянии выходов компаратора.
-	 */
-
-		//--------------------------------------------------------------------------
-		
+	//--------------------------------------------------------------------------
+	/* Калибровка 
+	На вход щупа подается семетричная пила с частотой 1кГц с оффестом установленным на ип.
+	после компарирования сигнала МК измеряет длительность импульса
+	т.к. 1 кГц соотвествет длительности в 500 мс то это означает что мы попапали в полуку офсета.*/
+	//--------------------------------------------------------------------------
 	}
 	else if (cmd == 0x08)	// Калибровка TIM inHL?
 	{
@@ -671,9 +728,7 @@ void runCommands(uint8_t *Buf, uint32_t *Len)
 		memcpy(UserTxBufferFS + 1, &temp, sizeof(uint16_t));
 		CDC_Transmit_FS(UserTxBufferFS, 1 + sizeof(uint16_t));
 		return;
-
-		
-		//--------------------------------------------------------------------------
+	//--------------------------------------------------------------------------
 	}
 	else if (cmd == 0x09)	// Калибровка TIM inLL?
 	{
@@ -683,13 +738,12 @@ void runCommands(uint8_t *Buf, uint32_t *Len)
 		memcpy(UserTxBufferFS + 1, &temp, sizeof(uint16_t));
 		CDC_Transmit_FS(UserTxBufferFS, 1 + sizeof(uint16_t));
 		return;
-		//--------------------------------------------------------------------------
-
-		
+	//--------------------------------------------------------------------------
 	}
-	else if (cmd == 0x0A)	// Прием калибровочной таблицы [0x0A][1-4][offset][count][data] 	answer: [0x0A]+[1-4]+[offset]+[count]+[status] (0x00 - сработал; 0x01 - не сработал)
+	else if (cmd == 0x0A)	// TODO: Прием калибровочной таблицы [0x0A][1-4][offset][count][data] 	answer: [0x0A]+[1-4]+[offset]+[count]+[status] (0x00 - сработал; 0x01 - не сработал)
 	{
 		//Прием калибровочной таблицы [0x0A][1-4][offset][count][data]
+		//FIXME: За одну посылку можно получить максимум 64 byte. Нужно организовать пакетную передачу
 		uint16_t tOffset, tCount, tData;
 		if (*Len >= 2 && Buf[1] >= 0x00 && Buf[1] <= 0x03)
 		{
@@ -925,13 +979,14 @@ void runCommands(uint8_t *Buf, uint32_t *Len)
 	{
 		if (*Len >= 2 && (Buf[1] == 0x02))
 		{
-			//TODO: Функция записи фо флеш.
-			writeTable();
-
-				UserTxBufferFS[0] = cmd;
-				UserTxBufferFS[1] = 0x00; // успешно
-				CDC_Transmit_FS(UserTxBufferFS, 2);
-				return;
+			//TODO: Функция записи фо флеш. FIXME: не работает запись фо флеш!
+			 changeTableFlag = true;
+			// writeTableInFlash();
+			printf("changeTableFlag = true!");
+			UserTxBufferFS[0] = cmd;
+			UserTxBufferFS[1] = 0x00; // успешно
+			CDC_Transmit_FS(UserTxBufferFS, 2);
+			return;
 		}
  		
 		//--------------------------------------------------------------------------
@@ -1073,7 +1128,7 @@ int main(void)
 
 #endif /* TEST_ADC */
 //**************************************************************************
-
+#if TEST_FLASH_TABLE
 	// Чтение DevNVRAM
 	l_Address = FLASH_TABLE_START_ADDR;
 	l_Error = 0;
@@ -1094,8 +1149,7 @@ int main(void)
 		// Заносим типовые значения
 		memset(DevNVRAM.data32, 0, sizeof(DevNVRAM.data32));
 
-		// TODO: !!!!!Добавить математику расчета калибровочной таблицы!!!!!!!
-
+		// ЗАГЛУШКА
 		for (uint8_t i = 0; i < MAX_VAL_M12; i++)
 		{
 			DevNVRAM.calibration_table.dacValA_m12[i] = i;
@@ -1166,99 +1220,82 @@ int main(void)
 	} //если после чтения майджик кей не найден, то это первый запуск записываем дефолтную таблицу
 	// TODO: Надо по запросе какая версия калиброчной табцы высылать значения дефолтной таблице...
 	//--------------------------------------------------------------------------
-	// Запиcь калибровочной таблицы в память
+#endif /* TEST_FLASH_TABLE */
 
-	// TODO: !!!!!Добавить математику расчета калибровочной таблицы!!!!!!!
-
-	// Циклически проверяем соотвествует ли информация в памяти массиву настроек?
-
-	l_Address = FLASH_TABLE_START_ADDR;
-	l_Error = 0;
-	l_Index = 0;
-	//Читаем и сравниваем
-	while (l_Address < FLASH_TABLE_STOP_ADDR)
-	{
-		if (DevNVRAM.data32[l_Index] != *(__IO uint32_t *)l_Address)
-		{
-			l_Error++;
-		}
-		l_Index = l_Index + 1;
-		l_Address = l_Address + 4;
-	}
-
-	if (l_Error > 0)
-	{ // конфигурация изменилась сохраняем
-		// Готовим к записи в память
-		HAL_FLASH_Unlock();
-		// Очищаем страницу памяти
-		HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
-		//Пишем данные в память
-		l_Address = FLASH_TABLE_START_ADDR;
-		l_Error = 0x00;
-		l_Index = 0x00;
-
-		DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
-		DevNVRAM.sector.CheckSum = 0; //HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
-
-		while (l_Address < FLASH_TABLE_STOP_ADDR)
-		{
-			if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
-								  DevNVRAM.data32[l_Index]) != HAL_OK)
-			{
-				l_Error++;
-			}
-
-			l_Address = l_Address + 4;
-			l_Index = l_Index + 1;
-			HAL_Delay(10);
-		}
-		HAL_FLASH_Lock();
-	}
-	HAL_Delay(100);
-	//--------------------------------------------------------------------------
-
-	//	crete_calibration_table(&DevNVRAM);
-	//	uint16_t new_valVolt = 0;
-	//	uint16_t new_valDAC = volt2dgt(&DevNVRAM, new_valVolt);
-	//#endif	/* TEST_FLASH_TABLE */
-
-	//void getCRC_table_a_m12(){
-	//
-	//	uint16_t _data[] ={0.};
-	//
-	//	memcpy(_data,DevNVRAM.calibration_table.dacValA_m12, sizeof(_data));
-	//	uint32_t crc__1 = 0;
-	//
-	////	crc__1 = HAL_CRC_Calculate(&hcrc, _data, 88);
-	////	return crc__1;
-	//}
-	//
-	//getCRC_table_a_m12();
-
-	//**************************************************************************
+	uint32_t timme = 0; // для таймера в 10 сек
+//**************************************************************************
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-
-		//**************************************************************************
 		// Циклически проверяем соотвествует ли информация в памяти массиву настроек?
+		if ((HAL_GetTick() - timme) > 10000) // интервал  10сек
+		{
+#if TEST_FLASH_TABLE
 
+			if (changeTableFlag)
+			{
+				changeTableFlag = false;
+				printf("write");
+				// Циклически проверяем соотвествует ли информация в памяти массиву настроек?
+
+				l_Address = FLASH_TABLE_START_ADDR;
+				l_Error = 0;
+				l_Index = 0;
+				//Читаем и сравниваем
+				while (l_Address < FLASH_TABLE_STOP_ADDR)
+				{
+					if (DevNVRAM.data32[l_Index] != *(__IO uint32_t *)l_Address)
+					{
+						l_Error++;
+					}
+					l_Index = l_Index + 1;
+					l_Address = l_Address + 4;
+				}
+
+				if (l_Error > 0)
+				{ // конфигурация изменилась сохраняем
+					// Готовим к записи в память
+					HAL_FLASH_Unlock();
+					// Очищаем страницу памяти
+					HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
+					//Пишем данные в память
+					l_Address = FLASH_TABLE_START_ADDR;
+					l_Error = 0x00;
+					l_Index = 0x00;
+
+					DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
+					DevNVRAM.sector.CheckSum = 0; //HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
+
+					while (l_Address < FLASH_TABLE_STOP_ADDR)
+					{
+						if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
+											  DevNVRAM.data32[l_Index]) != HAL_OK)
+						{
+							l_Error++;
+						}
+
+						l_Address = l_Address + 4;
+						l_Index = l_Index + 1;
+						HAL_Delay(10);
+					}
+					HAL_FLASH_Lock();
+				}
+				HAL_Delay(100);
+				//--------------------------------------------------------------------------
+				printf("flash done");
+			}
+#endif /* TEST_FLASH_TABLE */
+			timme = HAL_GetTick();
+		}
 
 	if(changeTableFlag){
 			writeTable(&DevNVRAM, &EraseInitStruct);
 	}
 //**************************************************************************
-
-		uint32_t Crc_cal_a_m12 = getCRC_table_a_m12();
-//		uint32_t Crc_cal_b_m12 = getCRC_table_b_m12();
-//		uint32_t Crc_cal_a_m27 = getCRC_table_a_m27();
-//		uint32_t Crc_cal_b_m27 = getCRC_table_b_m27();
-
-//**************************************************************************
-#if TEST_READ_BTN
+#if TEST_READ_BTN //TODO: данная реализация плохо отрабатывает! TODO: Нужно переделать на EXTI+TIM
 
 		uint32_t ms = HAL_GetTick();
 		uint8_t key1_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12); // подставить свой пин //TODO: Проверить работу BACK key!
