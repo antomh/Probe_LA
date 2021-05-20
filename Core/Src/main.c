@@ -48,7 +48,6 @@ FUTURE: Сформировать калиброчную таблицу чере�
 
 // Тестовые сборки
 #define DEBUG_SWO 			1
-// #define USE_FULL_ASSERT 	0
 #define TEST_UID 			1
 
 #define TEST_DAC 			1
@@ -90,43 +89,8 @@ FUTURE: Сформировать калиброчную таблицу чере�
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-//--------------------------------------------------------------------------
-// Тестовые сборки
-#define DEBUG_SWO 			1
-#define USE_FULL_ASSERT 	1
-#define TEST_UID 			1
 
-#define TEST_DAC 			1
-#define TEST_READ_BTN 		1 //TODO: данная реализация плохо отрабатывает!
-#define TEST_TIM_CAPTURE 	1
-#define TEST_ADC 			1
-#define USB_RESET 			0
-#define DWT_INIT 			1
 
-#define TEST_FLASH_TABLE 	1
-
-//--------------------------------------------------------------------------
-//DONE: В цикле не прерывно идет установка цапов! Формируя цифровой шум DONE: убарно из цикла
-//DONE: Ошибка в работе цап. При переключение в m27 цап принимает значения, но не устанавливет их! DONE: добавлена в библеотеку цап двоойна отправка команды, проблема устранена
-//DONE: set 4v-> set 5v -> M27 -> set 4v -> M12 -> set 6v (err:DAC не установил значения, но в ядре значения имеются!!!) DONE: изза ошибки 3. = добалена функция отправки значений при устанвоке реле
-//DONE: Доработать алгоритм установки реле! м.б. добавить в функции реле установку ЦАП по обоим каналам?
-//DONE: Перенос проекта с сохранением во флеш в этот проект.
-//DONE: Добавить серийный номер в щуп
-//DONE: Добавить калибровочную таблицу в проект через t.py формируется - необходимо заполнять значениями в logic_calibration_table.с
-
-//TODO: Работа с калибровочной таблицей
-//DONE: получить значение V , Поиск по значению напряжения V значение в калибровочной таблице VDAC
-//TODO: При остутсвтие значения в таблице произвести интерполяцию
-
-//==>
-//TODO: По команде с VCP перезаписать таблицу
-//--------------------------------------------------------------------------
-
-//DONE: нужно отправлять длину массива кратно 32b  по какой то причине в этом проекте не работает CRC!!!
-//TODO: Реализовать процедуру изменения калибровочной таблицы через VCP!
-//TODO: Сформировать калиброчную таблицу через функцию
-//TODO: роверить первое состоянеи первоначальное состояние реле 27V
-//--------------------------------------------------------------------------
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -147,14 +111,14 @@ TIM_HandleTypeDef htim4;
 /* USER CODE BEGIN PV */
 //--------------------------------------------------------------------------
 #if USB_RESET
-void USB_Reset();
+void USB_Reset(void);
 не работает без использвоания транзистора на D +
 #endif /* USB_RESET */
 	//--------------------------------------------------------------------------
 	/* USER CODE END PV */
 
 	/* Private function prototypes -----------------------------------------------*/
-	void SystemClock_Config(void);
+void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_ADC1_Init(void);
@@ -187,28 +151,55 @@ char buffer[64] = {
 };
 #endif /* TEST_UID */
 //**************************************************************************
-#if TEST_DAC
+#if TEST_FLASH_TABLE
+FLASH_EraseInitTypeDef EraseInitStruct;		  // структура для очистки флеша
 
-uint16_t VDAC_A = 0;
-uint16_t VDAC_B = 0;
-//
-//void SetDacA(uint16_t da) {
-//	VDAC_A = da;
-//	DAC_AD5322_Ch1(&hspi1, VDAC_A);
-//	//	uint16_t new_valVolt = 0;
-//	//	uint16_t new_valDAC = volt2dgt(&DevNVRAM, new_valVolt);
-//}
-//void SetDacB(uint16_t db) {
-//	VDAC_B = db;
-//	DAC_AD5322_Ch2(&hspi1, VDAC_B);
-//}
-//void SetAllDAC() {
-//	DAC_AD5322_Ch1Ch2(&hspi1,VDAC_A,VDAC_B);
-//}
-//--------------------------------------------------------------------------
 union NVRAM DevNVRAM;
+bool changeTableFlag = false; // TODO тестовый флаг для записи в while
 //--------------------------------------------------------------------------
-uint32_t getCRC_table_a_m12()
+
+void writeTableInFlash() { // FIXME:Запись в память не работает
+	uint32_t l_Address = FLASH_TABLE_START_ADDR;
+	uint32_t l_Error = 0;
+	uint32_t l_Index = 0;
+	//Читаем и сравниваем
+	while (l_Address < FLASH_TABLE_STOP_ADDR) {
+		if (&DevNVRAM.data32[l_Index] != *(volatile uint32_t*) l_Address) {
+			l_Error++;
+		}
+		l_Index = l_Index + 1;
+		l_Address = l_Address + 4;
+	}
+	// // конфигурация изменилась сохраняем
+	printf("Ошибка чтения таблицы :%i", l_Error);
+	if (l_Error > 0) {
+		// конфигурация изменилась сохраняем
+		// Готовим к записи в память
+		HAL_FLASH_Unlock();
+		// Очищаем страницу памяти
+		HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
+		//Пишем данные в память
+		l_Address = FLASH_TABLE_START_ADDR;
+		l_Error = 0x00;
+		l_Index = 0x00;
+		DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
+		DevNVRAM.sector.CheckSum = 0; //HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
+		while (l_Address < FLASH_TABLE_STOP_ADDR) {
+			if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
+					&DevNVRAM.data32[l_Index]) != HAL_OK) {
+				l_Error++;
+			}
+			l_Address = l_Address + 4;
+			l_Index = l_Index + 1;
+			HAL_Delay(10);
+		}
+		HAL_FLASH_Lock();
+	}
+//	HAL_Delay(100);
+}
+//--------------------------------------------------------------------------
+//FIXME:Отправлять длину массива кратно 32b. не работает CRC --> HardFault, 
+uint32_t getCRC_table_a_m12()	
 {
 	//	uint16_t len_ = sizeof(aqrr)/(sizeof(uint32_t)*2);
 	uint32_t crc = HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table.dacValA_m12, sizeof(DevNVRAM.calibration_table.dacValA_m12) / (sizeof(uint32_t) * 2));
@@ -256,7 +247,7 @@ void SetDacA(int16_t da)
 	VDAC_A = volt2dgt(&(DevNVRAM.calibration_table), da);
 	DAC_AD5322_Ch1(&hspi1, VDAC_A);
 }
-void SetDacB(int16_t db)
+void SetDacB(int16_t db) //BUG: Не работает. Установка цап реализованно только для канала A и режима m12. Нужно переписать с учетом режима работы. режим работы определяет какую таблицу использовать.
 {
 	VDAC_B = volt2dgt(&(DevNVRAM.calibration_table), db);
 	DAC_AD5322_Ch2(&hspi1, VDAC_B);
@@ -581,18 +572,20 @@ void runCommands(uint8_t *Buf, uint32_t *Len) 		// Обработчик USB
 		{
 			if (Buf[1] == 0x01)
 			{
+				#if TEST_RELAY
 				HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_SET);
 				RelayState = m12;
 				printf("RelayState:12V - %d \n", RelayState);
 				SetAllDAC();
-
 				UserTxBufferFS[0] = cmd;
 				UserTxBufferFS[1] = 0x00; // успешно
 				CDC_Transmit_FS(UserTxBufferFS, 2);
+				#endif /* TEST_RELAY */
 				return;
 			}
 			else if (Buf[1] == 0x00)
 			{
+				#if TEST_RELAY
 				HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_RESET);
 				RelayState = m27;
 				printf("RelayState:27V - %d \n", RelayState);
@@ -601,6 +594,7 @@ void runCommands(uint8_t *Buf, uint32_t *Len) 		// Обработчик USB
 				UserTxBufferFS[0] = cmd;
 				UserTxBufferFS[1] = 0x00; // успешно
 				CDC_Transmit_FS(UserTxBufferFS, 2);
+				#endif /* TEST_RELAY */
 				return;
 			}
 		}
@@ -676,7 +670,9 @@ void runCommands(uint8_t *Buf, uint32_t *Len) 		// Обработчик USB
 	else if (cmd == 0x05)	// Relay?DA?DB?
 	{
 		UserTxBufferFS[0] = cmd;
+		#if TEST_RELAY
 		UserTxBufferFS[1] = RelayState;
+		#endif /* TEST_RELAY */
 
 		tVal16 = GetDacA();
 		memcpy(UserTxBufferFS + 2, &tVal16, sizeof(tVal16));
@@ -774,6 +770,10 @@ void runCommands(uint8_t *Buf, uint32_t *Len) 		// Обработчик USB
 					memcpy(&tData, Buf + 2 + 2 * sizeof(uint16_t) + i * 2, sizeof(uint16_t));
 					DevNVRAM.calibration_table.dacValA_m12[i + tOffset] = tData;
 				}
+
+				changeTableFlag = true;
+
+
 				//answer: [0x0A]+[1-4]+[offset]+[count]+[status] (0x00 - сработал; 0x01 - не сработал)
 				/*
 				u8 	Buf[0] = 0x0A
@@ -975,7 +975,7 @@ void runCommands(uint8_t *Buf, uint32_t *Len) 		// Обработчик USB
 		return;
 	//--------------------------------------------------------------------------
 	}
-	else if (cmd == 0x0D)	// TODO Запись во флеш калибровочной таблицы [0x0D] data: 1B (0x00 - успешно; 0x01 - ошибка при записи)	answer: 0x0D + 1B status
+	else if (cmd == 0x0D)	// TODO: Запись во флеш калибровочной таблицы [0x0D] data: 1B (0x00 - успешно; 0x01 - ошибка при записи)	answer: 0x0D + 1B status
 	{
 		if (*Len >= 2 && (Buf[1] == 0x02))
 		{
@@ -999,9 +999,7 @@ void runCommands(uint8_t *Buf, uint32_t *Len) 		// Обработчик USB
 //-------------------------------------------------------------------------
 	
 }
-
-
-
+#endif /* TEST_USB */
 //**************************************************************************
 /* USER CODE END 0 */
 
@@ -1013,58 +1011,8 @@ int main(void)
 {
 	/* USER CODE BEGIN 1 */
 
+//	writeTableInFlash();
 
-	static FLASH_EraseInitTypeDef EraseInitStruct; // структура для очистки флеша
-
-	EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;	  // постраничная очистка, FLASH_TYPEERASE_MASSERASE - очистка всего флеша
-	EraseInitStruct.PageAddress = FLASH_TABLE_START_ADDR; // адрес 127-ой страницы
-	EraseInitStruct.NbPages = 0x01;						  // кол-во страниц для стирания
-	//EraseInitStruct.Banks = FLASH_BANK_1; // FLASH_BANK_2 - банк №2, FLASH_BANK_BOTH - оба банка
-	//--------------------------------------------------------------------------
-	uint32_t l_Address;
-	uint32_t l_Error;
-	uint32_t l_Index;
-	//--------------------------------------------------------------------------
-	void writeTable() {
-			changeTableFlag = false;
-			l_Address = FLASH_TABLE_START_ADDR;
-			l_Error = 0;
-			l_Index = 0;
-			//Читаем и сравниваем
-			while (l_Address < FLASH_TABLE_STOP_ADDR) {
-				if (&DevNVRAM.data32[l_Index] != *(volatile uint32_t*) l_Address) {
-					l_Error++;
-				}
-				l_Index = l_Index + 1;
-				l_Address = l_Address + 4;
-			}
-			// конфигурация изменилась сохраняем
-			printf("Ошибка чтения таблицы :%i", l_Error);
-			if (l_Error > 0) {
-				// конфигурация изменилась сохраняем
-				// Готовим к записи в память
-				HAL_FLASH_Unlock();
-				// Очищаем страницу памяти
-				HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
-				//Пишем данные в память
-				l_Address = FLASH_TABLE_START_ADDR;
-				l_Error = 0x00;
-				l_Index = 0x00;
-				DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
-				DevNVRAM.sector.CheckSum = 0; //HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
-				while (l_Address < FLASH_TABLE_STOP_ADDR) {
-					if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
-							&DevNVRAM.data32[l_Index]) != HAL_OK) {
-						l_Error++;
-					}
-					l_Address = l_Address + 4;
-					l_Index = l_Index + 1;
-					HAL_Delay(10);
-				}
-				HAL_FLASH_Lock();
-			}
-			HAL_Delay(100);
-		}
 
 	/* USER CODE END 1 */
 
@@ -1130,9 +1078,9 @@ int main(void)
 //**************************************************************************
 #if TEST_FLASH_TABLE
 	// Чтение DevNVRAM
-	l_Address = FLASH_TABLE_START_ADDR;
-	l_Error = 0;
-	l_Index = 0;
+	uint32_t l_Address = FLASH_TABLE_START_ADDR;
+	uint32_t l_Error = 0;
+	uint32_t l_Index = 0;
 	while (l_Address < FLASH_TABLE_STOP_ADDR)
 	{
 		DevNVRAM.data32[l_Index] = *(__IO uint32_t *)l_Address;
@@ -1143,10 +1091,11 @@ int main(void)
 //--------------------------------------------------------------------------
 	// если после чтения майджик кей не найден, то это первый запуск
 
-	if (DevNVRAM.calibration_table.MagicNum != MAGIC_KEY_DEFINE)
+	if (DevNVRAM.calibration_table.MagicNum != 0)
 	{
 		// Подготовка
 		// Заносим типовые значения
+		// TODO: !!!!!Добавить математику расчета калибровочной таблицы!!!!!!!
 		memset(DevNVRAM.data32, 0, sizeof(DevNVRAM.data32));
 
 		// ЗАГЛУШКА
@@ -1166,6 +1115,9 @@ int main(void)
 		{
 			DevNVRAM.calibration_table.dacValB_m12[i] = i;
 		}
+
+		crete_calibration_table(&DevNVRAM);
+
 		DevNVRAM.calibration_table.Hardwire = 0x06;
 		DevNVRAM.calibration_table.Firmware = 0x05;
 		DevNVRAM.calibration_table.SN = 0x1121001; //11 недел	я + год + порядковый номер изготовления
@@ -1291,9 +1243,6 @@ int main(void)
 			timme = HAL_GetTick();
 		}
 
-	if(changeTableFlag){
-			writeTable(&DevNVRAM, &EraseInitStruct);
-	}
 //**************************************************************************
 #if TEST_READ_BTN //TODO: данная реализация плохо отрабатывает! TODO: Нужно переделать на EXTI+TIM
 
