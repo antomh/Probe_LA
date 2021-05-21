@@ -7,10 +7,11 @@
  * @Purpose: Calibration table volt2dac
  *******************************************************************************/
 #include <logic_calibration_table.h>
+#include <stdlib.h>
 #include <math.h>
 
-void crete_calibration_table(Table_t *calibTable){//de
-
+void crete_calibration_table(Table_t *calibTable)
+{
      calibTable->dacValA_m12[0] = 0x0;
      calibTable->dacValA_m12[1] = 0x189;
      calibTable->dacValA_m12[2] = 0x31d;
@@ -532,8 +533,13 @@ void crete_calibration_table(Table_t *calibTable){//de
 uint16_t volt2dgt(Table_t *calibTable, int16_t volt){
 
 // TODO: Нужно ли учитывать Ктр? volt = volt*Ktr 
-float count = (abs(MIN_VOLT_MODE_12)+abs(MAX_VOLT_MODE_12))/STEP_CALIBRATE;
-uint16_t y = (floor((count*abs(MIN_VOLT_MODE_12))/(abs(MIN_VOLT_MODE_12)+abs(MAX_VOLT_MODE_12))/abs(MIN_VOLT_MODE_12)*volt+(count*abs(MIN_VOLT_MODE_12))/(abs(MIN_VOLT_MODE_12)+abs(MAX_VOLT_MODE_12)))); // искомый индекс в массиве!!! найти минимальное значение от него 26.5-->26 через floor
+float count = ( abs(MIN_VOLT_MODE_12) + abs(MAX_VOLT_MODE_12) ) / STEP_CALIBRATE;
+uint16_t y = ( floor( (count*abs(MIN_VOLT_MODE_12)) /
+               (abs(MIN_VOLT_MODE_12) + abs(MAX_VOLT_MODE_12)) /
+               abs(MIN_VOLT_MODE_12)*volt
+               +
+               (count*abs(MIN_VOLT_MODE_12)) /
+               (abs(MIN_VOLT_MODE_12) + abs(MAX_VOLT_MODE_12) ) ) ); // искомый индекс в массиве!!! найти минимальное значение от него 26.5-->26 через floor
 uint16_t CodeX = (((calibTable->dacValA_m12[y+1+1]-calibTable->dacValA_m12[y])/(((y+1+1) * STEP_CALIBRATE) -abs( MIN_VOLT_MODE_12)-((y+1) * STEP_CALIBRATE) - abs( MIN_VOLT_MODE_12))))*(volt-((y+1) * STEP_CALIBRATE) - abs( MIN_VOLT_MODE_12))+calibTable->dacValA_m12[y+1];
 	return CodeX;
 // printf((CodeX));
