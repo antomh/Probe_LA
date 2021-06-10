@@ -151,31 +151,46 @@ char buffer[64] = {
 #endif /* TEST_UID */
 //**************************************************************************
 #if TEST_FLASH_TABLE
-FLASH_EraseInitTypeDef EraseInitStruct;		  // структура для очистки флеша
+FLASH_EraseInitTypeDef EraseInitStruct = {  // структура для очистки флеша
+        .TypeErase      = FLASH_TYPEERASE_PAGES,
+        .PageAddress    = FLASH_TABLE_START_ADDR,
+        .NbPages        = 1
+};
 
 union NVRAM DevNVRAM;
 bool changeTableFlag = false; // TODO тестовый флаг для записи в while
 //--------------------------------------------------------------------------
 
 void writeTableInFlash() { // FIXME:Запись в память не работает
+    /*
+     * Функция работает, стирание и запись происходят корректно. Ошибка в том, что программа
+     * не попадает в условие (l_Error > 0), соответственно, не выполняет очистку и запись.
+     * Что такое l_Error? Обязательно ли это условие там? Так как функция должна выполнять одну
+     * единственную задачу, может, сделать функцию чисто записи во флеш безо всяких проверок?
+     * Также было установлено, что CubeIDE не точно отображает содержимое флеша -> лучше смотреть
+     * с помощью CubeProgrammer или STM32 ST-LINK Utility
+     * */
 	volatile uint32_t l_Address = FLASH_TABLE_START_ADDR;
 	uint32_t l_Error = 0;
 	uint32_t l_Index = 0;
 	//Читаем и сравниваем
 	while (l_Address < FLASH_TABLE_STOP_ADDR) {
-		if ( (&DevNVRAM.data32[l_Index]) != (uint32_t *) l_Address)
+		if ( DevNVRAM.data32[l_Index] != *(uint32_t *)l_Address )
 			l_Error++;
 		l_Index = l_Index + 1;
 		l_Address = l_Address + 4;
 	}
-	// // конфигурация изменилась сохраняем
+	// конфигурация изменилась сохраняем
 	printf("Ошибка чтения таблицы :%lu", l_Error);
 	if (l_Error > 0) {
 		// конфигурация изменилась сохраняем
 		// Готовим к записи в память
 		HAL_FLASH_Unlock();
 		// Очищаем страницу памяти
-		HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
+		if ( HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error) != HAL_OK )
+		{
+		    printf("ERASE error");
+		}
 		//Пишем данные в память
 		l_Address = FLASH_TABLE_START_ADDR;
 		l_Error = 0x00;
@@ -199,7 +214,12 @@ void writeTableInFlash() { // FIXME:Запись в память не работ
 uint32_t getCRC_table_a_m12()	
 {
 	//	uint16_t len_ = sizeof(aqrr)/(sizeof(uint32_t)*2);
-	uint32_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)DevNVRAM.calibration_table.dacValA_m12, sizeof(DevNVRAM.calibration_table.dacValA_m12) / (sizeof(uint32_t) * 2));
+//	uint32_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)DevNVRAM.calibration_table.dacValA_m12, sizeof(DevNVRAM.calibration_table.dacValA_m12) / (sizeof(uint32_t) * 2));
+    uint32_t crc = HAL_CRC_Calculate(&hcrc, 0x00, 1);
+    for (uint8_t i = 0; i < MAX_VAL_M12; ++i)
+	{
+	    crc = HAL_CRC_Accumulate(&hcrc, DevNVRAM.calibration_table.dacValA_m12[i], 1);
+	}
 	HAL_Delay(1);
 	return crc;
 }
@@ -1074,101 +1094,104 @@ int main(void)
 #endif /* TEST_ADC */
 //**************************************************************************
 #if TEST_FLASH_TABLE
+	writeTableInFlash();
 	// Чтение DevNVRAM
-	volatile uint32_t l_Address = FLASH_TABLE_START_ADDR;
-	uint32_t l_Error = 0;
-	uint32_t l_Index = 0;
-	while (l_Address < FLASH_TABLE_STOP_ADDR)
-	{
-		DevNVRAM.data32[l_Index] = *(__IO uint32_t *)l_Address;
-		l_Index = l_Index + 1;
-		l_Address = l_Address + 4;
-	}
+    volatile uint32_t l_Address = FLASH_TABLE_START_ADDR;
+    uint32_t l_Error = 0;
+    uint32_t l_Index = 0;
+    /*
+    while (l_Address < FLASH_TABLE_STOP_ADDR)
+    {
+        DevNVRAM.data32[l_Index] = *(__IO uint32_t *)l_Address;
+        l_Index = l_Index + 1;
+        l_Address = l_Address + 4;
+    }
 
 //--------------------------------------------------------------------------
-	// если после чтения майджик кей не найден, то это первый запуск
+    // если после чтения майджик кей не найден, то это первый запуск
 
-	if (DevNVRAM.calibration_table.MagicNum != 0)
-	{
-		// Подготовка
-		// Заносим типовые значения
-		// TODO: !!!!!Добавить математику расчета калибровочной таблицы!!!!!!!
-		memset(DevNVRAM.data32, 0, sizeof(DevNVRAM.data32));
+    if (DevNVRAM.calibration_table.MagicNum != 0)
+    {
+        // Подготовка
+        // Заносим типовые значения
+        // TODO: !!!!!Добавить математику расчета калибровочной таблицы!!!!!!!
+        memset(DevNVRAM.data32, 0xCA, sizeof(DevNVRAM.data32));
 
-		// ЗАГЛУШКА
-		for (uint8_t i = 0; i < MAX_VAL_M12; i++)
-		{
-			DevNVRAM.calibration_table.dacValA_m12[i] = i;
-		}
-		for (uint8_t i = 0; i < MAX_VAL_M12; i++)
-		{
-			DevNVRAM.calibration_table.dacValB_m12[i] = i;
-		}
-		for (uint8_t i = 0; i < MAX_VAL_M27; i++)
-		{
-			DevNVRAM.calibration_table.dacValA_m27[i] = i;
-		}
-		for (uint8_t i = 0; i < MAX_VAL_M27; i++)
-		{
-			DevNVRAM.calibration_table.dacValB_m12[i] = i;
-		}
+        // ЗАГЛУШКА
+        for (uint8_t i = 0; i < MAX_VAL_M12; i++)
+        {
+            DevNVRAM.calibration_table.dacValA_m12[i] = i;
+        }
+        for (uint8_t i = 0; i < MAX_VAL_M12; i++)
+        {
+            DevNVRAM.calibration_table.dacValB_m12[i] = i;
+        }
+        for (uint8_t i = 0; i < MAX_VAL_M27; i++)
+        {
+            DevNVRAM.calibration_table.dacValA_m27[i] = i;
+        }
+        for (uint8_t i = 0; i < MAX_VAL_M27; i++)
+        {
+            DevNVRAM.calibration_table.dacValB_m12[i] = i;
+        }
 
-		crete_calibration_table(&DevNVRAM.calibration_table);
+        crete_calibration_table(&DevNVRAM.calibration_table);
 
-		DevNVRAM.calibration_table.Hardwire = 0x06;
-		DevNVRAM.calibration_table.Firmware = 0x05;
-		DevNVRAM.calibration_table.SN = 0x1121001; //11 недел	я + год + порядковый номер изготовления
-		DevNVRAM.calibration_table.MagicNum = MAGIC_KEY_DEFINE;
+        DevNVRAM.calibration_table.Hardwire = 0x06;
+        DevNVRAM.calibration_table.Firmware = 0x05;
+        DevNVRAM.calibration_table.SN = 0x1121001; //11 недел	я + год + порядковый номер изготовления
+        DevNVRAM.calibration_table.MagicNum = MAGIC_KEY_DEFINE;
 
-		DevNVRAM.sector.NWrite = 0;
+        DevNVRAM.sector.NWrite = 0;
 
-		DevNVRAM.sector.CheckSum = 0; //HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));//DONE: нужно отправлять длину кратную 32b! -  по какой то причине в этом проекте не работает CRC!!!
+        DevNVRAM.sector.CheckSum = 0; //HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));//DONE: нужно отправлять длину кратную 32b! -  по какой то причине в этом проекте не работает CRC!!!
 
-		//--------------------------------------------------------------------------
-		//если после чтения майджик кей не найден, то это первый запуск записываем дефолтную таблицу
-		l_Address = FLASH_TABLE_START_ADDR;
-		l_Error = 0;
-		l_Index = 0;
+        //--------------------------------------------------------------------------
+        //если после чтения майджик кей не найден, то это первый запуск записываем дефолтную таблицу
+        l_Address = FLASH_TABLE_START_ADDR;
+        l_Error = 0;
+        l_Index = 0;
 
-		while (l_Address < FLASH_TABLE_STOP_ADDR)
-		{
-			if (DevNVRAM.data32[l_Index] != *(__IO uint32_t *)l_Address)
-			{
-				l_Error++;
-			}
-			l_Index = l_Index + 1;
-			l_Address = l_Address + 4;
-		}
+        while (l_Address < FLASH_TABLE_STOP_ADDR)
+        {
+            if (DevNVRAM.data32[l_Index] != *(__IO uint32_t *)l_Address)
+            {
+                l_Error++;
+            }
+            l_Index = l_Index + 1;
+            l_Address = l_Address + 4;
+        }
 
-		if (l_Error > 0)
-		{ // конфигурация изменилась сохраняем
-			// Готовим к записи в память
-			HAL_FLASH_Unlock();
-			// Очищаем страницу памяти
-			HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
-			//Пишем данные в память
-			l_Address = FLASH_TABLE_START_ADDR;
-			l_Error = 0x00;
-			l_Index = 0x00;
+        if (l_Error > 0)
+        { // конфигурация изменилась сохраняем
+            // Готовим к записи в память
+            HAL_FLASH_Unlock();
+            // Очищаем страницу памяти
+            HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
+            //Пишем данные в память
+            l_Address = FLASH_TABLE_START_ADDR;
+            l_Error = 0x00;
+            l_Index = 0x00;
 
-			while (l_Address < FLASH_TABLE_STOP_ADDR)
-			{
-				if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
-									  DevNVRAM.data32[l_Index]) != HAL_OK)
-				{
-					l_Error++;
-				}
+            while (l_Address < FLASH_TABLE_STOP_ADDR)
+            {
+                if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
+                                      DevNVRAM.data32[l_Index]) != HAL_OK)
+                {
+                    l_Error++;
+                }
 
-				l_Address = l_Address + 4;
-				l_Index = l_Index + 1;
-				HAL_Delay(10);
-			}
-			HAL_FLASH_Lock();
-		}
+                l_Address = l_Address + 4;
+                l_Index = l_Index + 1;
+                HAL_Delay(10);
+            }
+            HAL_FLASH_Lock();
+        }
 
-	} //если после чтения майджик кей не найден, то это первый запуск записываем дефолтную таблицу
-	// TODO: Надо по запросе какая версия калиброчной табцы высылать значения дефолтной таблице...
-	//--------------------------------------------------------------------------
+    } //если после чтения майджик кей не найден, то это первый запуск записываем дефолтную таблицу
+    // TODO: Надо по запросе какая версия калиброчной табцы высылать значения дефолтной таблице...
+    //--------------------------------------------------------------------------
+*/
 #endif /* TEST_FLASH_TABLE */
 
 	uint32_t timme = 0; // для таймера в 10 сек
