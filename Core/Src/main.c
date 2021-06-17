@@ -74,10 +74,10 @@ FUTURE: Сформировать калиброчную таблицу чере�
 
 #include "DAC_AD5322.h"
 #include "logic_calibration_table.h"
-
 #include "usbd_cdc_if.h"
-#include "string.h" // для функции strlen()
+#include "string.h"                 // для функции strlen()
 #include "stdbool.h"
+#include "flash.h"
 
 /* USER CODE END Includes */
 
@@ -150,26 +150,19 @@ char buffer[64] = {
 };
 #endif /* TEST_UID */
 //**************************************************************************
-#if TEST_FLASH_TABLE
+#if TEST_FLASH_TABLE/*
 FLASH_EraseInitTypeDef EraseInitStruct = {  // структура для очистки флеша
         .TypeErase      = FLASH_TYPEERASE_PAGES,
         .PageAddress    = FLASH_TABLE_START_ADDR,
         .NbPages        = 1
-};
+};*/
 
 union NVRAM DevNVRAM;
-bool changeTableFlag = false; // TODO тестовый флаг для записи в while
+bool changeTableFlag = false;   // TODO тестовый флаг для записи в while
 //--------------------------------------------------------------------------
-
-void writeTableInFlash() { // FIXME:Запись в память не работает
-    /*
-     * Функция работает, стирание и запись происходят корректно. Ошибка в том, что программа
-     * не попадает в условие (l_Error > 0), соответственно, не выполняет очистку и запись.
-     * Что такое l_Error? Обязательно ли это условие там? Так как функция должна выполнять одну
-     * единственную задачу, может, сделать функцию чисто записи во флеш безо всяких проверок?
-     * Также было установлено, что CubeIDE не точно отображает содержимое флеша -> лучше смотреть
-     * с помощью CubeProgrammer или STM32 ST-LINK Utility
-     * */
+/*
+void writeTableInFlash()        // FIXME:Запись в память не работает
+{
 	volatile uint32_t l_Address = FLASH_TABLE_START_ADDR;
 	uint32_t l_Error = 0;
 	uint32_t l_Index = 0;
@@ -209,6 +202,7 @@ void writeTableInFlash() { // FIXME:Запись в память не работ
 	}
 //	HAL_Delay(100);
 }
+*/
 //--------------------------------------------------------------------------
 //FIXME:Отправлять длину массива кратно 32b. не работает CRC --> HardFault, 
 uint32_t getCRC_table_a_m12()	
@@ -216,11 +210,11 @@ uint32_t getCRC_table_a_m12()
 	//	uint16_t len_ = sizeof(aqrr)/(sizeof(uint32_t)*2);
 //	uint32_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)DevNVRAM.calibration_table.dacValA_m12, sizeof(DevNVRAM.calibration_table.dacValA_m12) / (sizeof(uint32_t) * 2));
     uint32_t crc = HAL_CRC_Calculate(&hcrc, 0x00, 1);
-    for (uint8_t i = 0; i < MAX_VAL_M12; ++i)
-	{
-	    crc = HAL_CRC_Accumulate(&hcrc, DevNVRAM.calibration_table.dacValA_m12[i], 1);
-	}
-	HAL_Delay(1);
+//    for (uint8_t i = 0; i < MAX_VAL_M12; ++i)
+//	{
+//	    crc = HAL_CRC_Accumulate(&hcrc, DevNVRAM.calibration_table.dacValA_m12[i], 1);
+//	}
+//	HAL_Delay(1);
 	return crc;
 }
 uint32_t getCRC_table_b_m12()
@@ -1094,11 +1088,13 @@ int main(void)
 #endif /* TEST_ADC */
 //**************************************************************************
 #if TEST_FLASH_TABLE
-	writeTableInFlash();
+
+	flash_fill_calibTable();
+	flash_write_calibTable();
 	// Чтение DevNVRAM
-    volatile uint32_t l_Address = FLASH_TABLE_START_ADDR;
+    /*volatile uint32_t l_Address = FLASH_TABLE_START_ADDR;
     uint32_t l_Error = 0;
-    uint32_t l_Index = 0;
+    uint32_t l_Index = 0;*/
     /*
     while (l_Address < FLASH_TABLE_STOP_ADDR)
     {
@@ -1206,7 +1202,7 @@ int main(void)
 		if ((HAL_GetTick() - timme) > 10000) // интервал  10сек
 		{
 #if TEST_FLASH_TABLE
-
+/*
 			if (changeTableFlag)
 			{
 				changeTableFlag = false;
@@ -1258,7 +1254,7 @@ int main(void)
 				HAL_Delay(100);
 				//--------------------------------------------------------------------------
 				printf("flash done");
-			}
+			}*/
 #endif /* TEST_FLASH_TABLE */
 			timme = HAL_GetTick();
 		}

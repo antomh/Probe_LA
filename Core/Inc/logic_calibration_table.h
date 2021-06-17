@@ -78,12 +78,22 @@ typedef struct // 							4+4+4+176+176+326+326 = 1016 байт
 
 } Table_t;
 
+/*
+ * data     - data itself
+ * NWrite   - number of rewritings
+ * CheckSum - data CRC
+ */
 struct FLASH_Sector {
 	uint32_t 	data[256 - 2]; // 			254* 4 = 1016 байта (1016 байт)
 	uint32_t 	NWrite; //					4 байта
 	uint32_t 	CheckSum; //				4 байта ==>1016 + 4 + 4 = 1024
 };
 
+/*
+ * calibration_table    - calibration table structure
+ * sector               - flash sector with calibration table, CRC and writings number
+ * data32               - pure register data
+ */
 union NVRAM {
 	Table_t 	calibration_table; //		1016 байт
 	struct 		FLASH_Sector sector; //		1024 байт
