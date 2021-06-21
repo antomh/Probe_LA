@@ -7,8 +7,10 @@
 
 #include "stm32f1xx_hal.h"
 #include "logic_calibration_table.h"
+#include "flash.h"
 
 /*---------------------------------------------------------------------------*/
+
 extern union NVRAM DevNVRAM;
 extern CRC_HandleTypeDef hcrc;
 
@@ -18,7 +20,7 @@ extern CRC_HandleTypeDef hcrc;
  */
 void flash_fill_calibTable(void)
 {
-    for (uint16_t i = 0; i < 254; ++i) {
+    for (uint32_t i = 0; i < 254; ++i) {
         DevNVRAM.sector.data[i] = i;
     }
     DevNVRAM.sector.CheckSum = 0xAAAAAAAA;

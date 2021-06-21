@@ -27,6 +27,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "logic_calibration_table.h"
+#include "usb_handler.h"
 
 /* USER CODE END INCLUDE */
 
@@ -270,7 +271,8 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
 	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
-	runCommands(Buf, Len);
+	usb_rx_handler(Buf, Len);
+
 	return (USBD_OK);
   /* USER CODE END 6 */
 }
