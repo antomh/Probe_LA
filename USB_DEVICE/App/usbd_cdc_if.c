@@ -38,6 +38,8 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
+extern struct usb_rx_data usb_rx_data;
+
 /* USER CODE END PV */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -271,7 +273,17 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
 	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
-	usb_rx_handler(Buf, Len);
+	usb_rx_data.len = 0;
+	/* Запись данных в общую глобальную переменную для
+	 * хранения пакета данных - usb_rx_data */
+	if ( usb_rx_data.is_read == 0 ) {
+	    return USBD_BUSY;
+	}
+	else {
+	    memcpy( usb_rx_data.buff, Buf, *Len );
+	    usb_rx_data.is_read = 0;
+	    usb_rx_data.len     = *Len;
+	}
 
 	return (USBD_OK);
   /* USER CODE END 6 */

@@ -7,6 +7,7 @@
 
 #include "stm32f1xx_hal.h"
 #include "crc.h"
+#include "logic_calibration_table.h"
 
 /*---------------------------------------------------------------------------*/
 
@@ -24,14 +25,14 @@ HAL_StatusTypeDef crc_calibTable_calculate(uint16_t *calTable, calTableType t_ca
 {
     if ( t_calTable == TABLETYPE_M12 ) {
         /* See the next value in Table_t structure */
-        const uint8_t calTable_lenght = 88;
+        const uint8_t calTable_lenght = MAX_VAL_M12;
 
         *crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)calTable, calTable_lenght);
         return HAL_OK;
     }
     else if ( t_calTable == TABLETYPE_M27 ) {
         /* See the next value in Table_t structure */
-        const uint8_t calTable_lenght = 163;
+        const uint8_t calTable_lenght = MAX_VAL_M27;
 
         *crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)calTable, calTable_lenght);
         return HAL_OK;
