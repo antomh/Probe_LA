@@ -1,22 +1,3 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
-
 /*
 --------------------------------------------------------------------------
 BUG	: В цикле не прерывно идет установка цапов! Формируя цифровой шум. DONE: убарно из цикла
@@ -43,8 +24,6 @@ TODO: Проверить первое состоянеи первоначаль�
 FUTURE: Сформировать калиброчную таблицу через функцию. При остусвтие значения в таблице произвести интерполяцию
 --------------------------------------------------------------------------
 */
-
-
 
 // Тестовые сборки
 #define DEBUG_SWO 			1
@@ -75,7 +54,7 @@ FUTURE: Сформировать калиброчную таблицу чере�
 #include "DAC_AD5322.h"
 #include "logic_calibration_table.h"
 #include "usbd_cdc_if.h"
-#include "string.h"                 // для функции strlen()
+#include "string.h"
 #include "stdbool.h"
 #include "flash.h"
 #include "crc.h"
@@ -91,8 +70,6 @@ FUTURE: Сформировать калиброчную таблицу чере�
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -102,35 +79,33 @@ FUTURE: Сформировать калиброчную таблицу чере�
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
-
 CRC_HandleTypeDef hcrc;
-
 SPI_HandleTypeDef hspi1;
-
 TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
 
-/* Описание структуры см. main.h */
-struct usb_rx_data usb_rx_data = {
-        .is_read    = 1,
-        .len        = 0,
-        .buff       = {0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0}
+/* Создаем переменную типа usb_rx_data_type.
+ * Описание структуры см. main.h */
+usb_rx_data_type usb_rx_data = {
+        .is_handled     = true,
+        .is_received    = false,
+        .len            = 0,
+        .buff           = {0,0,0,0,0,0,0,0,
+                           0,0,0,0,0,0,0,0,
+                           0,0,0,0,0,0,0,0,
+                           0,0,0,0,0,0,0,0,
+                           0,0,0,0,0,0,0,0,
+                           0,0,0,0,0,0,0,0,
+                           0,0,0,0,0,0,0,0,
+                           0,0,0,0,0,0,0,0}
 };
 
-//--------------------------------------------------------------------------
-#if USB_RESET
-void USB_Reset(void);
-#endif /* USB_RESET */
-	//--------------------------------------------------------------------------
+union NVRAM DevNVRAM;
+/* Флаг для проверки обновления калибровочной таблицы в цикле while(1) */
+bool changeTableFlag = false;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -142,7 +117,10 @@ static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
-//**************************************************************************
+
+void USB_Reset(void);
+
+/*---------------------------------------------*/
 #if DEBUG_SWO
 int _write(int32_t file, uint8_t *ptr, int32_t len)
 {
@@ -152,48 +130,10 @@ int _write(int32_t file, uint8_t *ptr, int32_t len)
 	}
 	return len;
 }
-
 #endif /* DEBUG_SWO */
-//**************************************************************************
-#if TEST_UID
-// Чтение UID контроллера
-//#define UID_BASE 0x1FFFF7E8
-uint16_t *idBase0 = (uint16_t *)(UID_BASE);
-uint16_t *idBase1 = (uint16_t *)(UID_BASE + 0x02);
-uint32_t *idBase2 = (uint32_t *)(UID_BASE + 0x04);
-uint32_t *idBase3 = (uint32_t *)(UID_BASE + 0x08);
-char buffer[64] = {
-	0,
-};
-#endif /* TEST_UID */
-//**************************************************************************
-#if TEST_FLASH_TABLE/*
-FLASH_EraseInitTypeDef EraseInitStruct = {  // структура для очистки флеша
-        .TypeErase      = FLASH_TYPEERASE_PAGES,
-        .PageAddress    = FLASH_TABLE_START_ADDR,
-        .NbPages        = 1
-};*/
+/*---------------------------------------------*/
 
-union NVRAM DevNVRAM;
-bool changeTableFlag = false;   // TODO тестовый флаг для записи в while
-
-//--------------------------------------------------------------------------
-#endif /* TEST_FLASH_TABLE */
-//**************************************************************************
 #if TEST_DAC
-// Старая реализация. для приема dgt значений цап.
-//void SetDacA(uint16_t da) {
-//	VDAC_A = da;
-//	DAC_AD5322_Ch2(&hspi1, VDAC_A);
-//}
-//void SetDacB(uint16_t db) {
-//	VDAC_B = db;
-//	DAC_AD5322_Ch2(&hspi1, VDAC_B);
-//}
-//void SetAllDAC() {
-//	DAC_AD5322_Ch1Ch2(&hspi1,VDAC_A,VDAC_B);
-//}
-//--------------------------------------------------------------------------
 uint16_t VDAC_A = 0;
 uint16_t VDAC_B = 0;
 // Новая реализация. для приема значений в напряжениях, с поиском по структуре DevNVRAM выгруженной из памяти.
@@ -534,12 +474,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 /*---------------------------------------------------------------------------*/
-#if TEST_UID
-  sprintf(buffer, "UID %x-%x-%lx-%lx\n", *idBase0, *idBase1, *idBase2, *idBase3);
-  printf(buffer);
-#endif /* TEST_UID */
 
-/*---------------------------------------------------------------------------*/
 #if TEST_TIM_CAPTURE
   HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
   HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
@@ -548,274 +483,123 @@ int main(void)
 #endif /* TEST_TIM_CAPTURE */
 
 /*---------------------------------------------------------------------------*/
+
 #if TEST_DAC
   SetAllDAC();
 #endif /* TEST_DAC */
 
 /*---------------------------------------------------------------------------*/
+
 #if TEST_ADC
   HAL_ADCEx_Calibration_Start(&hadc1);
   HAL_ADC_Start_IT(&hadc1);
 #endif /* TEST_ADC */
 
 /*---------------------------------------------------------------------------*/
-#if TEST_FLASH_TABLE
-//  flash_fill_calibTable();
-//  flash_write_calibTable();
-	// Чтение DevNVRAM
-    /*volatile uint32_t l_Address = FLASH_TABLE_START_ADDR;
-    uint32_t l_Error = 0;
-    uint32_t l_Index = 0;*/
-    /*
-    while (l_Address < FLASH_TABLE_STOP_ADDR)
-    {
-        DevNVRAM.data32[l_Index] = *(__IO uint32_t *)l_Address;
-        l_Index = l_Index + 1;
-        l_Address = l_Address + 4;
-    }
 
-//--------------------------------------------------------------------------
-    // если после чтения майджик кей не найден, то это первый запуск
 
-    if (DevNVRAM.calibration_table.MagicNum != 0)
-    {
-        // Подготовка
-        // Заносим типовые значения
-        // TODO: !!!!!Добавить математику расчета калибровочной таблицы!!!!!!!
-        memset(DevNVRAM.data32, 0xCA, sizeof(DevNVRAM.data32));
+//	uint32_t timme = 0; // для таймера в 10 сек
 
-        // ЗАГЛУШКА
-        for (uint8_t i = 0; i < MAX_VAL_M12; i++)
-        {
-            DevNVRAM.calibration_table.dacValA_m12[i] = i;
-        }
-        for (uint8_t i = 0; i < MAX_VAL_M12; i++)
-        {
-            DevNVRAM.calibration_table.dacValB_m12[i] = i;
-        }
-        for (uint8_t i = 0; i < MAX_VAL_M27; i++)
-        {
-            DevNVRAM.calibration_table.dacValA_m27[i] = i;
-        }
-        for (uint8_t i = 0; i < MAX_VAL_M27; i++)
-        {
-            DevNVRAM.calibration_table.dacValB_m12[i] = i;
-        }
-
-        crete_calibration_table(&DevNVRAM.calibration_table);
-
-        DevNVRAM.calibration_table.Hardwire = 0x06;
-        DevNVRAM.calibration_table.Firmware = 0x05;
-        DevNVRAM.calibration_table.SN = 0x1121001; //11 неделя + год + порядковый номер изготовления
-        DevNVRAM.calibration_table.MagicNum = MAGIC_KEY_DEFINE;
-
-        DevNVRAM.sector.NWrite = 0;
-
-        DevNVRAM.sector.CheckSum = 0; //HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));//DONE: нужно отправлять длину кратную 32b! -  по какой то причине в этом проекте не работает CRC!!!
-
-        //--------------------------------------------------------------------------
-        //если после чтения майджик кей не найден, то это первый запуск записываем дефолтную таблицу
-        l_Address = FLASH_TABLE_START_ADDR;
-        l_Error = 0;
-        l_Index = 0;
-
-        while (l_Address < FLASH_TABLE_STOP_ADDR)
-        {
-            if (DevNVRAM.data32[l_Index] != *(__IO uint32_t *)l_Address)
-            {
-                l_Error++;
-            }
-            l_Index = l_Index + 1;
-            l_Address = l_Address + 4;
-        }
-
-        if (l_Error > 0)
-        { // конфигурация изменилась сохраняем
-            // Готовим к записи в память
-            HAL_FLASH_Unlock();
-            // Очищаем страницу памяти
-            HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
-            //Пишем данные в память
-            l_Address = FLASH_TABLE_START_ADDR;
-            l_Error = 0x00;
-            l_Index = 0x00;
-
-            while (l_Address < FLASH_TABLE_STOP_ADDR)
-            {
-                if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
-                                      DevNVRAM.data32[l_Index]) != HAL_OK)
-                {
-                    l_Error++;
-                }
-
-                l_Address = l_Address + 4;
-                l_Index = l_Index + 1;
-                HAL_Delay(10);
-            }
-            HAL_FLASH_Lock();
-        }
-
-    } //если после чтения майджик кей не найден, то это первый запуск записываем дефолтную таблицу
-    // TODO: Надо по запросе какая версия калиброчной табцы высылать значения дефолтной таблице...
-    //--------------------------------------------------------------------------
-*/
-#endif /* TEST_FLASH_TABLE */
-
-	uint32_t timme = 0; // для таймера в 10 сек
-//**************************************************************************
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
+	    if ( usb_rx_data.is_received == true ) {
+	        usb_rx_handler(&usb_rx_data);
+        }
 		// Циклически проверяем соотвествует ли информация в памяти массиву настроек?
-		if ((HAL_GetTick() - timme) > 10000) // интервал  10сек
-		{
-#if TEST_FLASH_TABLE
-/*
-			if (changeTableFlag)
-			{
-				changeTableFlag = false;
-				printf("write");
-				// Циклически проверяем соотвествует ли информация в памяти массиву настроек?
-
-				l_Address = FLASH_TABLE_START_ADDR;
-				l_Error = 0;
-				l_Index = 0;
-				//Читаем и сравниваем
-				while (l_Address < FLASH_TABLE_STOP_ADDR)
-				{
-					if (DevNVRAM.data32[l_Index] != *(__IO uint32_t *)l_Address)
-					{
-						l_Error++;
-					}
-					l_Index = l_Index + 1;
-					l_Address = l_Address + 4;
-				}
-
-				if (l_Error > 0)
-				{ // конфигурация изменилась сохраняем
-					// Готовим к записи в память
-					HAL_FLASH_Unlock();
-					// Очищаем страницу памяти
-					HAL_FLASHEx_Erase(&EraseInitStruct, &l_Error);
-					//Пишем данные в память
-					l_Address = FLASH_TABLE_START_ADDR;
-					l_Error = 0x00;
-					l_Index = 0x00;
-
-					DevNVRAM.sector.NWrite = DevNVRAM.sector.NWrite + 1;
-					DevNVRAM.sector.CheckSum = 0; //HAL_CRC_Calculate(&hcrc, &DevNVRAM.calibration_table, (sizeof(DevNVRAM.calibration_table)/4));
-
-					while (l_Address < FLASH_TABLE_STOP_ADDR)
-					{
-						if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, l_Address,
-											  DevNVRAM.data32[l_Index]) != HAL_OK)
-						{
-							l_Error++;
-						}
-
-						l_Address = l_Address + 4;
-						l_Index = l_Index + 1;
-						HAL_Delay(10);
-					}
-					HAL_FLASH_Lock();
-				}
-				HAL_Delay(100);
-				//--------------------------------------------------------------------------
-				printf("flash done");
-			}*/
-#endif /* TEST_FLASH_TABLE */
-			timme = HAL_GetTick();
-		}
-
-//**************************************************************************
-#if TEST_READ_BTN //TODO: данная реализация плохо отрабатывает! TODO: Нужно переделать на EXTI+TIM
-
-		uint32_t ms = HAL_GetTick();
-		uint8_t key1_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12); // подставить свой пин //TODO: Проверить работу BACK key!
-
-		if (key1_state == 0 && !short_state1 && (ms - time_key1) > 50)
-		{
-			short_state1 = 1;
-			long_state1 = 0;
-			time_key1 = ms;
-		}
-		else if (key1_state == 0 && !long_state1 && (ms - time_key1) > KEY_LONG_DELAY)
-		{
-			long_state1 = 1;
-			// действие на длинное нажатие
-			btn1_long_rd = 1;
-		}
-		else if (key1_state == 1 && short_state1 && (ms - time_key1) > 50)
-		{
-			short_state1 = 0;
-			time_key1 = ms;
-
-			if (!long_state1)
-			{
-				// действие на короткое нажатие
-				btn1_short_rd = 1;
-			}
-		}
-		uint8_t key2_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13); // подставить свой пин
-
-		if (key2_state == 0 && !short_state2 && (ms - time_key2) > 50)
-		{
-			short_state2 = 1;
-			long_state2 = 0;
-			time_key2 = ms;
-		}
-		else if (key2_state == 0 && !long_state2 && (ms - time_key2) > KEY_LONG_DELAY)
-		{
-			long_state2 = 1;
-
-			// действие на длинное нажатие
-			btn2_long_rd = 1;
-		}
-		else if (key2_state == 1 && short_state2 && (ms - time_key2) > 50)
-		{
-			short_state2 = 0;
-			time_key2 = ms;
-
-			if (!long_state2)
-			{
-				// действие на короткое нажатие
-				btn2_short_rd = 1;
-			}
-		}
-
-		uint8_t key3_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // подставить свой пин
-		if (key3_state == 0 && !short_state3 && (ms - time_key3) > 50)
-		{
-			short_state3 = 1;
-			long_state3 = 0;
-			time_key3 = ms;
-		}
-		else if (key3_state == 0 && !long_state3 && (ms - time_key3) > KEY_LONG_DELAY)
-		{
-			long_state3 = 1;
-			// действие на длинное нажатие
-			btn3_long_rd = 1;
-		}
-		else if (key3_state == 1 && short_state3 && (ms - time_key3) > 50)
-		{
-			short_state3 = 0;
-			time_key3 = ms;
-
-			if (!long_state3)
-			{
-				// действие на короткое нажатие
-				btn3_short_rd = 1;
-			}
-		}
-
-#endif	/* TEST_READ_BTN */
-
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
+//		if ((HAL_GetTick() - timme) > 10000) // интервал  10сек
+//		{
+//			timme = HAL_GetTick();
+//		}
+//
+//#if TEST_READ_BTN //TODO: данная реализация плохо отрабатывает! TODO: Нужно переделать на EXTI+TIM
+//
+//		uint32_t ms = HAL_GetTick();
+//		uint8_t key1_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12); // подставить свой пин //TODO: Проверить работу BACK key!
+//
+//		if (key1_state == 0 && !short_state1 && (ms - time_key1) > 50)
+//		{
+//			short_state1 = 1;
+//			long_state1 = 0;
+//			time_key1 = ms;
+//		}
+//		else if (key1_state == 0 && !long_state1 && (ms - time_key1) > KEY_LONG_DELAY)
+//		{
+//			long_state1 = 1;
+//			// действие на длинное нажатие
+//			btn1_long_rd = 1;
+//		}
+//		else if (key1_state == 1 && short_state1 && (ms - time_key1) > 50)
+//		{
+//			short_state1 = 0;
+//			time_key1 = ms;
+//
+//			if (!long_state1)
+//			{
+//				// действие на короткое нажатие
+//				btn1_short_rd = 1;
+//			}
+//		}
+//		uint8_t key2_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13); // подставить свой пин
+//
+//		if (key2_state == 0 && !short_state2 && (ms - time_key2) > 50)
+//		{
+//			short_state2 = 1;
+//			long_state2 = 0;
+//			time_key2 = ms;
+//		}
+//		else if (key2_state == 0 && !long_state2 && (ms - time_key2) > KEY_LONG_DELAY)
+//		{
+//			long_state2 = 1;
+//
+//			// действие на длинное нажатие
+//			btn2_long_rd = 1;
+//		}
+//		else if (key2_state == 1 && short_state2 && (ms - time_key2) > 50)
+//		{
+//			short_state2 = 0;
+//			time_key2 = ms;
+//
+//			if (!long_state2)
+//			{
+//				// действие на короткое нажатие
+//				btn2_short_rd = 1;
+//			}
+//		}
+//
+//		uint8_t key3_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // подставить свой пин
+//		if (key3_state == 0 && !short_state3 && (ms - time_key3) > 50)
+//		{
+//			short_state3 = 1;
+//			long_state3 = 0;
+//			time_key3 = ms;
+//		}
+//		else if (key3_state == 0 && !long_state3 && (ms - time_key3) > KEY_LONG_DELAY)
+//		{
+//			long_state3 = 1;
+//			// действие на длинное нажатие
+//			btn3_long_rd = 1;
+//		}
+//		else if (key3_state == 1 && short_state3 && (ms - time_key3) > 50)
+//		{
+//			short_state3 = 0;
+//			time_key3 = ms;
+//
+//			if (!long_state3)
+//			{
+//				// действие на короткое нажатие
+//				btn3_short_rd = 1;
+//			}
+//		}
+//
+//#endif	/* TEST_READ_BTN */
+//
+//    /* USER CODE END WHILE */
+//
+//    /* USER CODE BEGIN 3 */
 	}
   /* USER CODE END 3 */
 }

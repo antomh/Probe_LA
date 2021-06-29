@@ -25,6 +25,7 @@
 /* USER CODE BEGIN INCLUDE */
 #include "main.h"
 #include "string.h"
+#include "stdbool.h"
 #include "stdio.h"
 #include "logic_calibration_table.h"
 #include "usb_handler.h"
@@ -38,7 +39,7 @@
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
-extern struct usb_rx_data usb_rx_data;
+extern usb_rx_data_type usb_rx_data;
 
 /* USER CODE END PV */
 
@@ -273,16 +274,21 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
 	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
-	usb_rx_data.len = 0;
 	/* Запись данных в общую глобальную переменную для
 	 * хранения пакета данных - usb_rx_data */
-	if ( usb_rx_data.is_read == 0 ) {
-	    return USBD_BUSY;
+	if ( usb_rx_data.is_handled  == false ) {
+	    /* Если данные пакета ещё не обработаны, то
+	     * ошибка - прием нового пакета пока не возможен.
+	     * И отправляем пакет из 5-ти нулей, как показатель об
+	     * ошибке. */
+	    uint8_t b[] = {0,0,0,0,0};
+	    CDC_Transmit_FS(b, strlen( (char*)b) );
 	}
 	else {
 	    memcpy( usb_rx_data.buff, Buf, *Len );
-	    usb_rx_data.is_read = 0;
-	    usb_rx_data.len     = *Len;
+	    usb_rx_data.len         = *Len;
+	    usb_rx_data.is_handled  = false;
+	    usb_rx_data.is_received = true;
 	}
 
 	return (USBD_OK);
