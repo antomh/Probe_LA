@@ -20,17 +20,17 @@
 #define SN_DEFINE 					0x1121001
 //--------------------------------------------------------------------------
 // Параметры щупа
-#define MAX_VAL_M12 				(uint16_t)0x0088//	шаг 0,2В в диапозоне [-5:12:0,2] 85  TODO:найти что за 3 значения?!
-#define MAX_VAL_M27 				(uint16_t)0x0163//	шаг 0,2В в диапозоне [-30:30:0,2] 163*0.2= 32,6
+#define MAX_VAL_M12         88    //	шаг 0,2В в диапозоне [-5:12:0,2] 85  TODO:найти что за 3 значения?!
+#define MAX_VAL_M27         163   //	шаг 0,2В в диапозоне [-30:30:0,2] 163*0.2= 32,6
 
-#define STEP_CALIBRATE		200
+#define STEP_CALIBRATE      200
 
-#define MIN_VOLT_MODE_12	-5000
-#define MAX_VOLT_MODE_12	12000
+#define MIN_VOLT_MODE_12    -5000
+#define MAX_VOLT_MODE_12    12000
 
-#define MIN_VOLT_MODE_27	-27000
-#define MAX_VOLT_MODE_27	27000
-#define	Ktr 				1.04
+#define MIN_VOLT_MODE_27    -27000
+#define MAX_VOLT_MODE_27    27000
+#define	Ktr                 1.04
 
 // length_mode_12v = int(((-1)*MIN_VOLT_MODE_12+MAX_VOLT_MODE_12)/step_calibrate)
 // length_mode_27v = int(((-1)*MIN_VOLT_MODE_27+MAX_VOLT_MODE_27)/step_calibrate)

@@ -1,4 +1,5 @@
 "Core/Src/DAC_AD5322.o"
+"Core/Src/btn.o"
 "Core/Src/crc.o"
 "Core/Src/flash.o"
 "Core/Src/logic_calibration_table.o"

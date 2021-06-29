@@ -60,6 +60,12 @@ typedef struct {
     uint8_t buff[64];
 } usb_rx_data_type;
 
+/* Структура для обработки нажатия кнопок и работы с прерываниями*/
+struct btn {
+    uint16_t is_started;
+    uint16_t counter;
+};
+
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
@@ -116,20 +122,16 @@ uint16_t GetTIM4(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define AD5312_LDAC_Pin         GPIO_PIN_1
-#define AD5312_LDAC_GPIO_Port   GPIOA
-
-#define Relay_Pin               GPIO_PIN_2
-#define Relay_GPIO_Port         GPIOA
-
-#define AD5312_SYNC_Pin         GPIO_PIN_4
-#define AD5312_SYNC_GPIO_Port   GPIOA
-
-#define AD5312_SCLK_Pin         GPIO_PIN_5
-#define AD5312_SCLK_GPIO_Port   GPIOA
-
-#define AD5312_DIN_Pin          GPIO_PIN_7
-#define AD5312_DIN_GPIO_Port    GPIOA
+#define AD5312_LDAC_Pin GPIO_PIN_1
+#define AD5312_LDAC_GPIO_Port GPIOA
+#define Relay_Pin GPIO_PIN_2
+#define Relay_GPIO_Port GPIOA
+#define AD5312_SYNC_Pin GPIO_PIN_4
+#define AD5312_SYNC_GPIO_Port GPIOA
+#define AD5312_SCLK_Pin GPIO_PIN_5
+#define AD5312_SCLK_GPIO_Port GPIOA
+#define AD5312_DIN_Pin GPIO_PIN_7
+#define AD5312_DIN_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
