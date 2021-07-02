@@ -23,6 +23,9 @@
 #include "stm32f1xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
+#include "btn.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -190,14 +193,23 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
-    if ( btn_pin_12.is_started == 1 ) {
+    if ( btn_pin_12.is_count_started == 1 ) {
         ++btn_pin_12.counter;
+        if ( btn_pin_12.counter > 1000 ) {
+            btn_pin_12.is_long_press = 1;
+        }
     }
-    if ( btn_pin_13.is_started == 1 ) {
+    if ( btn_pin_13.is_count_started == 1 ) {
         ++btn_pin_13.counter;
+        if ( btn_pin_13.counter > 1000 ) {
+            btn_pin_13.is_long_press = 1;
+        }
     }
-    if ( btn_pin_14.is_started == 1 ) {
+    if ( btn_pin_14.is_count_started == 1 ) {
         ++btn_pin_14.counter;
+        if ( btn_pin_14.counter > 1000 ) {
+            btn_pin_14.is_long_press = 1;
+        }
     }
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();

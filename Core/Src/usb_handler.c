@@ -11,6 +11,7 @@
 #include "flash.h"
 #include "usb_handler.h"
 #include "crc.h"
+#include "btn.h"
 
 /*-STM LIBRARY FILES---------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
@@ -25,6 +26,9 @@
 extern bool RelayState;
 extern bool changeTableFlag;
 extern union NVRAM DevNVRAM;
+extern struct btn btn_pin_12;
+extern struct btn btn_pin_13;
+extern struct btn btn_pin_14;
 
 /*---------------------------------------------------------------------------*/
 
@@ -147,9 +151,9 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         /* Команда запроса состояния кнопок */
         case 0x06 :
             usb_tx_buff[0] = cmd;
-            usb_tx_buff[1] = GetBtnRunState();
-            usb_tx_buff[2] = GetBtnUpState();
-            usb_tx_buff[3] = GetBtnDownState();
+            usb_tx_buff[1] = btn_run_get_state();
+            usb_tx_buff[2] = btn_up_get_state();
+            usb_tx_buff[3] = btn_down_get_state();
             CDC_Transmit_FS(usb_tx_buff, 4);
             break;
 
@@ -206,16 +210,6 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
             usb_tx_buff[6] = 0x00;
             /* В буффер для отправки ответа заносим номер таблицы */
             usb_tx_buff[1] = usb->buff[1];
-
-
-            /* DEBUG
-            static uint8_t deb_num = 0;
-            ++deb_num;
-            if (deb_num == 4) {
-                deb_num = 0;
-            }
-            ---------*/
-
 
             /* dataStartNumber  - номер ячейки, с которой начинается запись
              * dataEndNumber    - номер последней ячейки, в которую должны записываться данные
@@ -277,8 +271,8 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                 }
                 case 0x02 :
                 {
-                    if (dataStartNumber >= MAX_VAL_M12 ||
-                         dataEndNumber > MAX_VAL_M12    ||
+                    if (dataStartNumber >= MAX_VAL_M27 ||
+                         dataEndNumber > MAX_VAL_M27    ||
                          dataOffset > usb_max_calib_value) {
                          usb_tx_buff[6] = 0x01;   /* Произошла ошибка - возвращаем 0х01 */
                          break;
@@ -301,8 +295,8 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                 }
                 case 0x03 :
                 {
-                    if (dataStartNumber >= MAX_VAL_M12 ||
-                         dataEndNumber > MAX_VAL_M12    ||
+                    if (dataStartNumber >= MAX_VAL_M27 ||
+                         dataEndNumber > MAX_VAL_M27    ||
                          dataOffset > usb_max_calib_value) {
                          usb_tx_buff[6] = 0x01;   /* Произошла ошибка - возвращаем 0х01 */
                          break;
@@ -341,12 +335,14 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
             break;
 
         /* Команда приема длины калибровочной таблицы */
-        case 0x0C :
+        case 0x0D :
+            /* Правильная команда тут - 0х0С, изменено для тестирования */
             break;
 
         /* Команда записи во флеш калибровочной таблицы */
-        case 0x0D :
+        case 0x0C :
         {
+            /* Правильная команда тут - 0х0D, изменено для тестирования */
             if (usb->len >= 2 && (usb->buff[1] == 0x02))
             {
                 changeTableFlag = true;

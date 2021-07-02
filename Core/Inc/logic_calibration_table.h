@@ -20,8 +20,8 @@
 #define SN_DEFINE 					0x1121001
 //--------------------------------------------------------------------------
 // Параметры щупа
-#define MAX_VAL_M12         88    //	шаг 0,2В в диапозоне [-5:12:0,2] 85  TODO:найти что за 3 значения?!
-#define MAX_VAL_M27         163   //	шаг 0,2В в диапозоне [-30:30:0,2] 163*0.2= 32,6
+#define MAX_VAL_M12         86    //	шаг 0,2В в диапозоне [-5:12:0,2] 85  TODO:найти что за 3 значения?!
+#define MAX_VAL_M27         162   //	шаг 0,2В в диапозоне [-30:30:0,2] 163*0.2= 32,6
 
 #define STEP_CALIBRATE      200
 
@@ -63,18 +63,27 @@
 
 
 //--------------------------------------------------------------------------
-typedef struct // 							4+4+4+176+176+326+326 = 1016 байт
+typedef struct
 {
-	uint16_t Hardwire; //					2 байта
-	uint16_t Firmware; //					2 байта
-	uint32_t SN; //							4 байта
+	uint16_t Hardwire;
+	uint16_t Firmware;                      /* 2*2 = 4 байта */
 
-	uint32_t MagicNum; //0x4815162342		4 байта ==>4+4+2+2 = 12
+//	  uint16_t calibration_step = 200;
+//    int16_t volt_min_mode_12 = -5000;
+//    int16_t volt_max_mode_12 = 12000;
+//    int16_t volt_min_mode_27 = -27000;
+//    int16_t volt_max_mode_27 = 27000;       /* 5*2 = 10 байт */
 
-	uint16_t dacValA_m12[MAX_VAL_M12]; //	88*2 = 176 байта
-	uint16_t dacValB_m12[MAX_VAL_M12]; //	88*2 = 176 байта
-	uint16_t dacValA_m27[MAX_VAL_M27]; //	163*2 = 326 байта
-	uint16_t dacValB_m27[MAX_VAL_M27]; //	163*2 = 326 байта ==> 1004 + 12 = 1016
+	uint32_t SN;                            /* 4 байта */
+
+	uint32_t MagicNum; /* = 0x4815162342       4 байта */
+
+	                                        /* Итого : 4 + 10 + 4 + 4 = 22 байта */
+
+	uint16_t dacValA_m12[MAX_VAL_M12];      /* 86*2 = 172 байта */
+	uint16_t dacValB_m12[MAX_VAL_M12];      /* 86*2 = 172 байта */
+	uint16_t dacValA_m27[MAX_VAL_M27];      /* 162*2 = 324 байта */
+	uint16_t dacValB_m27[MAX_VAL_M27];      /* 162*2 = 324 байта ==> 992 + 22 = 1014 */
 
 } Table_t;
 
@@ -95,7 +104,7 @@ struct FLASH_Sector {
  * data32               - pure register data
  */
 union NVRAM {
-	Table_t 	calibration_table; //		1016 байт
+	Table_t 	calibration_table; //		1014 байт
 	struct 		FLASH_Sector sector; //		1024 байт
 	uint32_t	data32[256]; // 			1024 байт
 };

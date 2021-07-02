@@ -579,11 +579,6 @@ uint16_t CodeX = (((calibTable->dacValA_m12[y+1+1]-calibTable->dacValA_m12[y])/(
 // float CodeX = (((Ca1-Ca0)/(a1-a0)))*(x-a0)+Ca0;
 // 	return CodeX;
 // // printf((CodeX));
-
-
-
-
-
 }
 
 

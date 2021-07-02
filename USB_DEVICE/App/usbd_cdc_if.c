@@ -106,7 +106,7 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-//extern Table_t *calibTable;
+
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -139,6 +139,36 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
+
+void USB_Reset(void)
+{
+
+    /* GPIO Ports Clock Enable */
+    __HAL_RCC_GPIOD_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    /* Reset USB DP (D+) */
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    /* Инициализируем пин DP как выход */
+    GPIO_InitStruct.Pin = GPIO_PIN_12;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    /* Прижимаем DP к "земле" */
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET);
+    /* Ждем немного */
+    for (uint16_t i = 0; i < 10000; i++)
+        ;
+
+    /* Переинициализируем пин для работы с USB */
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    /* Ждем немного */
+    for (uint16_t i = 0; i < 10000; i++)
+        ;
+}
 
 /* USER CODE END PRIVATE_FUNCTIONS_DECLARATION */
 
@@ -274,13 +304,25 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
 	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
+	/* DEBUG */
+	/* С помощью этого куска кода можно отлаживать взаимодействие с
+	 * программой Йоноса. Она отбрасывает команды 0х06, которыми спамит
+	 * программа, и можно посмотреть входящие другие пакеты по точке
+	 * останова. */
+//	if (Buf[0] == 0x06) {
+//	    uint8_t b[] = {0x06, 0x00, 0x00, 0x00};
+//	    CDC_Transmit_FS(b, 4);
+//	    return (USBD_OK);
+//	}
+	/*-------*/
+
 	/* Запись данных в общую глобальную переменную для
 	 * хранения пакета данных - usb_rx_data */
 	if ( usb_rx_data.is_handled  == false ) {
 	    /* Если данные пакета ещё не обработаны, то
 	     * ошибка - прием нового пакета пока не возможен.
-	     * �? отправляем пакет из 5-ти нулей, как показатель об
-	     * ошибке. */
+	     * Следовательно, отправляем пакет из 5-ти нулей,
+	     * как показатель об ошибке. */
 	    uint8_t b[] = {0,0,0,0,0};
 	    CDC_Transmit_FS(b, strlen( (char*)b) );
 	}

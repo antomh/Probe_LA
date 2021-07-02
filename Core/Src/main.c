@@ -17,6 +17,7 @@
 #include "flash.h"
 #include "crc.h"
 #include "usb_handler.h"
+#include "btn.h"
 
 /*-STANDART C FILES----------------------------------------------------------*/
 #include "string.h"
@@ -86,16 +87,22 @@ bool changeTableFlag = false;
 
 /* Определение и заполнение структур для работы с кнопками */
 struct btn btn_pin_12 = {
-        .is_started = 0,
-        .counter    = 0
+        .is_long_press      = 0,
+        .was_short_pressed  = 0,
+        .is_count_started   = 0,
+        .counter            = 0
 };
 struct btn btn_pin_13 = {
-        .is_started = 0,
-        .counter    = 0
+        .is_long_press      = 0,
+        .was_short_pressed  = 0,
+        .is_count_started   = 0,
+        .counter            = 0
 };
 struct btn btn_pin_14 = {
-        .is_started = 0,
-        .counter    = 0
+        .is_long_press      = 0,
+        .was_short_pressed  = 0,
+        .is_count_started   = 0,
+        .counter            = 0
 };
 
 /* USER CODE END PV */
@@ -153,127 +160,6 @@ uint16_t GetDacB()
 }
 
 //**************************************************************************
-#if TEST_READ_BTN
-#define KEY_LONG_DELAY 1000
-//PB12
-uint8_t short_state1 = 0;
-uint8_t long_state1 = 0;
-uint32_t time_key1 = 0;
-
-uint8_t btn1_long_rd = 0;
-uint8_t btn1_short_rd = 0;
-
-//PB13
-uint8_t short_state2 = 0;
-uint8_t long_state2 = 0;
-uint32_t time_key2 = 0;
-
-uint8_t btn2_long_rd = 0;
-uint8_t btn2_short_rd = 0;
-
-//PB14
-uint8_t short_state3 = 0;
-uint8_t long_state3 = 0;
-uint32_t time_key3 = 0;
-
-uint8_t btn3_long_rd = 0;
-uint8_t btn3_short_rd = 0;
-//--------------------------------------------------------------------------
-uint8_t GetBtnRunState()
-{
-	// 0x00 - не нажата; 0x01 - короткое нажатие; 0x02 - длительное нажатие
-	if (btn1_short_rd == 0x00 && btn1_long_rd == 0x00)
-	{
-		btn1_long_rd = 0;
-		btn1_short_rd = 0;
-		return 0x00;
-	}
-	if (btn1_short_rd == 0x01 && btn1_long_rd == 0x00)
-	{
-		btn1_long_rd = 0;
-		btn1_short_rd = 0;
-		return 0x01;
-	}
-	if (btn1_short_rd == 0x00 && btn1_long_rd == 0x01)
-	{
-		btn1_long_rd = 0;
-		btn1_short_rd = 0;
-		return 0x02;
-	}
-
-	btn1_long_rd = 0;
-	btn1_short_rd = 0;
-
-	//	if (short_state1 == 0x00 && long_state1 == 0x00)	return 0x00;
-	//	if (short_state1 == 0x01 && long_state1 == 0x00)	return 0x01;
-	//	if (short_state1 == 0x00 && long_state1 == 0x01)	return 0x02;
-	return 0x00;
-}
-//--------------------------------------------------------------------------
-uint8_t GetBtnUpState()
-{
-	// 0x00 - не нажата; 0x01 - короткое нажатие; 0x02 - длительное нажатие
-	if (btn2_short_rd == 0x00 && btn2_long_rd == 0x00)
-	{
-		btn2_long_rd = 0;
-		btn2_short_rd = 0;
-		return 0x00;
-	}
-	if (btn2_short_rd == 0x01 && btn2_long_rd == 0x00)
-	{
-		btn2_long_rd = 0;
-		btn2_short_rd = 0;
-		return 0x01;
-	}
-	if (btn2_short_rd == 0x00 && btn2_long_rd == 0x01)
-	{
-		btn2_long_rd = 0;
-		btn2_short_rd = 0;
-		return 0x02;
-	}
-
-	btn2_long_rd = 0;
-	btn2_short_rd = 0;
-	//	// 0x00 - не нажата; 0x01 - короткое нажатие; 0x02 - длительное нажатие
-	//	if (short_state2 == 0x00 && long_state2 == 0x00)	return 0x00;
-	//	if (short_state2 == 0x01 && long_state2 == 0x00)	return 0x01;
-	//	if (short_state2 == 0x00 && long_state2 == 0x01)	return 0x02;
-	return 0x00;
-}
-//--------------------------------------------------------------------------
-uint8_t GetBtnDownState()
-{
-	// 0x00 - не нажата; 0x01 - короткое нажатие; 0x02 - длительное нажатие
-	if (btn3_short_rd == 0x00 && btn3_long_rd == 0x00)
-	{
-		btn3_long_rd = 0;
-		btn3_short_rd = 0;
-		return 0x00;
-	}
-	if (btn3_short_rd == 0x01 && btn3_long_rd == 0x00)
-	{
-		btn3_long_rd = 0;
-		btn3_short_rd = 0;
-		return 0x01;
-	}
-	if (btn3_short_rd == 0x00 && btn3_long_rd == 0x01)
-	{
-		btn3_long_rd = 0;
-		btn3_short_rd = 0;
-		return 0x02;
-	}
-
-	btn3_long_rd = 0;
-	btn3_short_rd = 0;
-	//	if (short_state3 == 0x00 && long_state3 == 0x00)	return 0x00;
-	//	if (short_state3 == 0x01 && long_state3 == 0x00)	return 0x01;
-	//	if (short_state3 == 0x00 && long_state3 == 0x01)	return 0x02;
-	return 0x00;
-}
-//--------------------------------------------------------------------------
-
-#endif /* TEST_READ_BTN */
-//**************************************************************************
 #if TEST_TIM_CAPTURE
 volatile uint8_t timWork = 0;
 volatile uint8_t count_overflowTIM3 = 0;
@@ -282,10 +168,6 @@ volatile uint8_t count_overflowTIM4 = 0;
 volatile uint16_t g_vTIM3_PB4 = 0;
 volatile uint16_t g_vTIM4_PB6 = 0;
 
-// char trans2_str[64] = {
-// 	0,
-// };
-//--------------------------------------------------------------------------
 void EnableTIM3_PB4(void)
 {
 	timWork = 1;
@@ -361,7 +243,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//**************************************************************************
+
 #if TEST_ADC
 volatile uint16_t g_VADC = 0;
 
@@ -378,36 +260,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 	}
 }
 #endif /* TEST_ADC */
-//**************************************************************************
-#if USB_RESET
-void USB_Reset(void)
-{
-
-	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOD_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-
-	// reset USB DP (D+)
-	GPIO_InitTypeDef GPIO_InitStruct = {0};
-
-	// инициализируем пин DP как выход
-	GPIO_InitStruct.Pin = GPIO_PIN_12;
-	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-	HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_RESET); // прижимаем DP к "земле"
-	for (uint16_t i = 0; i < 10000; i++)
-	{
-	}; // немного ждём
-
-	// переинициализируем пин для работы с USB
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-	for (uint16_t i = 0; i < 10000; i++)
-	    ;           // немного ждём
-}
-#endif /* USB_RESET */
 
 bool RelayState = m12; //TODO: проверить первое состояние --> первоначальное состояние реле 27V FIXME: Нужно изменить на m12 и подправить у Йоноса!
 
@@ -498,88 +350,6 @@ int main(void)
 //		{
 //			timme = HAL_GetTick();
 //		}
-//
-//#if TEST_READ_BTN //TODO: данная реализация плохо отрабатывает! TODO: Нужно переделать на EXTI+TIM
-//
-//		uint32_t ms = HAL_GetTick();
-//		uint8_t key1_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_12); // подставить свой пин //TODO: Проверить работу BACK key!
-//
-//		if (key1_state == 0 && !short_state1 && (ms - time_key1) > 50)
-//		{
-//			short_state1 = 1;
-//			long_state1 = 0;
-//			time_key1 = ms;
-//		}
-//		else if (key1_state == 0 && !long_state1 && (ms - time_key1) > KEY_LONG_DELAY)
-//		{
-//			long_state1 = 1;
-//			// действие на длинное нажатие
-//			btn1_long_rd = 1;
-//		}
-//		else if (key1_state == 1 && short_state1 && (ms - time_key1) > 50)
-//		{
-//			short_state1 = 0;
-//			time_key1 = ms;
-//
-//			if (!long_state1)
-//			{
-//				// действие на короткое нажатие
-//				btn1_short_rd = 1;
-//			}
-//		}
-//		uint8_t key2_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_13); // подставить свой пин
-//
-//		if (key2_state == 0 && !short_state2 && (ms - time_key2) > 50)
-//		{
-//			short_state2 = 1;
-//			long_state2 = 0;
-//			time_key2 = ms;
-//		}
-//		else if (key2_state == 0 && !long_state2 && (ms - time_key2) > KEY_LONG_DELAY)
-//		{
-//			long_state2 = 1;
-//
-//			// действие на длинное нажатие
-//			btn2_long_rd = 1;
-//		}
-//		else if (key2_state == 1 && short_state2 && (ms - time_key2) > 50)
-//		{
-//			short_state2 = 0;
-//			time_key2 = ms;
-//
-//			if (!long_state2)
-//			{
-//				// действие на короткое нажатие
-//				btn2_short_rd = 1;
-//			}
-//		}
-//
-//		uint8_t key3_state = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_14); // подставить свой пин
-//		if (key3_state == 0 && !short_state3 && (ms - time_key3) > 50)
-//		{
-//			short_state3 = 1;
-//			long_state3 = 0;
-//			time_key3 = ms;
-//		}
-//		else if (key3_state == 0 && !long_state3 && (ms - time_key3) > KEY_LONG_DELAY)
-//		{
-//			long_state3 = 1;
-//			// действие на длинное нажатие
-//			btn3_long_rd = 1;
-//		}
-//		else if (key3_state == 1 && short_state3 && (ms - time_key3) > 50)
-//		{
-//			short_state3 = 0;
-//			time_key3 = ms;
-//
-//			if (!long_state3)
-//			{
-//				// действие на короткое нажатие
-//				btn3_short_rd = 1;
-//			}
-//		}
-//
-//#endif	/* TEST_READ_BTN */
 //
     /* USER CODE END WHILE */
 
@@ -865,6 +635,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /* User code
+   * Typically cleared while code generaiton */
+
+  USB_Reset();
+
+  /* End of user code */
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
