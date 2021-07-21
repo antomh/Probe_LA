@@ -23,7 +23,7 @@
 
 /*-EXTERNAL VARIABLES--------------------------------------------------------*/
 
-extern bool RelayState;
+extern bool relay_state;
 extern bool changeTableFlag;
 extern union NVRAM DevNVRAM;
 extern struct btn btn_pin_12;
@@ -72,12 +72,12 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                 HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_SET);
 
                 if ( usb->buff[1] == 0x01 ) {
-                    RelayState = m12;
-                    printf("RelayState:12V - %d \n", RelayState);
+                    relay_state = M12;
+                    printf("RelayState:12V - %d \n", relay_state);
                 }
                 else if (usb->buff[1] == 0x00) {
-                    RelayState = m27;
-                    printf("RelayState:27V - %d \n", RelayState);
+                    relay_state = M27;
+                    printf("RelayState:27V - %d \n", relay_state);
                 }
                 SetAllDAC();
                 usb_tx_buff[1] = 0x00; // успешно
@@ -93,11 +93,11 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         /* Команда калибровки ЦАП А */
         case 0x02 :
             if (usb->len >= 3) {
-                resValTIM3_PB4(); // обнуление переменной для проведения калибровки
-                resValTIM4_PB6(); // обнуление переменной для проведения калибровки
-                memcpy(&tVal16, usb->buff + 1, sizeof(tVal16));
-                SetDacA(tVal16);
-                printf("DacA: %d\n", tVal16);
+//                resValTIM3_PB4(); // обнуление переменной для проведения калибровки
+//                resValTIM4_PB6(); // обнуление переменной для проведения калибровки
+//                memcpy(&tVal16, usb->buff + 1, sizeof(tVal16));
+//                SetDacA(tVal16);
+//                printf("DacA: %d\n", tVal16);
 
                 usb_tx_buff[1] = 0x00; // успешно
             }
@@ -111,11 +111,11 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         /* Команда калибровки ЦАП В */
         case 0x03 :
             if (usb->len >= 3) {
-                resValTIM3_PB4(); // обнуление переменной для проведения калиброки
-                resValTIM4_PB6(); // обнуление переменной для проведения калиброки
-                memcpy(&tVal16, usb->buff + 1, sizeof(tVal16));
-                SetDacB(tVal16);
-                printf("DacB: %d \n", tVal16);
+//                resValTIM3_PB4(); // обнуление переменной для проведения калиброки
+//                resValTIM4_PB6(); // обнуление переменной для проведения калиброки
+//                memcpy(&tVal16, usb->buff + 1, sizeof(tVal16));
+//                SetDacB(tVal16);
+//                printf("DacB: %d \n", tVal16);
 
                 usb_tx_buff[1] = 0x00; // успешно
             }
@@ -128,7 +128,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
 
         /* Команда запроса значения АЦП */
         case 0x04 :
-            tVal16 = GetADC();
+//            tVal16 = GetADC();
             usb_tx_buff[0] = cmd;
             memcpy(usb_tx_buff + 1, &tVal16, sizeof(tVal16));
             CDC_Transmit_FS(usb_tx_buff, 3);
@@ -137,7 +137,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         /* Команда запроса состояния ЦАПов */
         case 0x05 :
             usb_tx_buff[0] = cmd;
-            usb_tx_buff[1] = RelayState;
+            usb_tx_buff[1] = relay_state;
 
             tVal16 = GetDacA();
             memcpy(usb_tx_buff + 2, &tVal16, sizeof(tVal16));
@@ -180,8 +180,9 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         /* Команда запроса измеренной длительности */
         case 0x08 :
         {
-            EnableTIM3_PB4();
-            uint16_t temp = GetTIM3();
+//            EnableTIM3_PB4();
+//            uint16_t temp = GetTIM3();
+            uint16_t temp = 0x00;
             usb_tx_buff[0] = cmd;
             memcpy(usb_tx_buff + 1, &temp, sizeof(uint16_t));
             CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
@@ -191,8 +192,9 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         /* Команда запроса измеренной длительности */
         case 0x09 :
         {
-            EnableTIM4_PB6();
-            uint16_t temp = GetTIM4();
+//            EnableTIM4_PB6();
+//            uint16_t temp = GetTIM4();
+            uint16_t temp = 0x00;
             usb_tx_buff[0] = cmd;
             memcpy(usb_tx_buff + 1, &temp, sizeof(uint16_t));
             CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
@@ -242,6 +244,11 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                         i_usb   += 2;
                         i_calib += 1;
                     }
+                    /* Обнуляем правую оставшуюся часть массива, для того, чтобы в
+                     * таблице не оставалось мусорных данных */
+                    memset( &DevNVRAM.calibration_table.dacValA_m12[dataEndNumber],
+                            0x00,
+                            (MAX_VAL_M12 - dataEndNumber) * sizeof(uint16_t) );
                     break;
 
                 }
@@ -266,6 +273,11 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                          i_usb   += 2;
                          i_calib += 1;
                      }
+                     /* Обнуляем правую оставшуюся часть массива, для того, чтобы в
+                      * таблице не оставалось мусорных данных */
+                     memset( &DevNVRAM.calibration_table.dacValB_m12[dataEndNumber],
+                             0x00,
+                             (MAX_VAL_M12 - dataEndNumber) * sizeof(uint16_t) );
                      break;
 
                 }
@@ -290,6 +302,11 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                          i_usb   += 2;
                          i_calib += 1;
                      }
+                     /* Обнуляем правую оставшуюся часть массива, для того, чтобы в
+                      * таблице не оставалось мусорных данных */
+                     memset( &DevNVRAM.calibration_table.dacValA_m27[dataEndNumber],
+                             0x00,
+                             (MAX_VAL_M27 - dataEndNumber) * sizeof(uint16_t) );
                      break;
 
                 }
@@ -314,6 +331,11 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                          i_usb   += 2;
                          i_calib += 1;
                      }
+                     /* Обнуляем правую оставшуюся часть массива, для того, чтобы в
+                      * таблице не оставалось мусорных данных */
+                     memset( &DevNVRAM.calibration_table.dacValB_m27[dataEndNumber],
+                             0x00,
+                             (MAX_VAL_M27 - dataEndNumber) * sizeof(uint16_t) );
                      break;
 
                 }
@@ -343,10 +365,10 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         case 0x0C :
         {
             /* Правильная команда тут - 0х0D, изменено для тестирования */
-            if (usb->len >= 2 && (usb->buff[1] == 0x02))
+            if (usb->len >= 2)
             {
                 changeTableFlag = true;
-                if ( flash_write_calibTable() != HAL_OK ) {
+                if ( flash_write_calibTable( &DevNVRAM ) != HAL_OK ) {
                     break;
                 }
                 usb_tx_buff[1] = 0x00; // успешно

@@ -14,10 +14,10 @@
 #define FLASH_TABLE_START_ADDR		ADDR_FLASH_PAGE_127
 #define FLASH_TABLE_STOP_ADDR		FLASH_TABLE_START_ADDR+FLASH_PAGE_SIZE
 //--------------------------------------------------------------------------
-#define MAGIC_KEY_DEFINE			0x48151623
-#define HARDWIRE_DEFINE 			0x06
-#define FIRMWARE_DEFINE 			0x05
-#define SN_DEFINE 					0x1121001
+#define MAGIC_KEY                   0x48151623
+#define HARDWIRE_NUMBER             0x06
+#define FIRMWARE_NUMBER             0x05
+#define SERIAL_NUMBER               0x0000001
 //--------------------------------------------------------------------------
 // Параметры щупа
 #define MAX_VAL_M12         86    //	шаг 0,2В в диапозоне [-5:12:0,2] 85  TODO:найти что за 3 значения?!
@@ -30,25 +30,6 @@
 
 #define MIN_VOLT_MODE_27    -27000
 #define MAX_VOLT_MODE_27    27000
-#define	Ktr                 1.04
-
-// length_mode_12v = int(((-1)*MIN_VOLT_MODE_12+MAX_VOLT_MODE_12)/step_calibrate)
-// length_mode_27v = int(((-1)*MIN_VOLT_MODE_27+MAX_VOLT_MODE_27)/step_calibrate)
-
-// dacValA = 0
-// dacValB = 0
-
-// dacValZero_m12 = 2048
-// dacValMin_A_m12 = 0
-// dacValMax_A_m12 = 4095
-// dacValMin_B_m12 = 0
-// dacValMax_B_m12 = 4095
-
-// dacValZero_m27 = 2048
-// dacValMin_A_m27 = 0
-// dacValMax_A_m27 = 4095
-// dacValMin_B_m27 = 0
-// dacValMax_B_m27 = 4095
 
 //--------------------------------------------------------------------------
 // Опорное напряжение ЦАП (в вольтах)
@@ -68,11 +49,11 @@ typedef struct
 	uint16_t Hardwire;
 	uint16_t Firmware;                      /* 2*2 = 4 байта */
 
-//	  uint16_t calibration_step = 200;
-//    int16_t volt_min_mode_12 = -5000;
-//    int16_t volt_max_mode_12 = 12000;
-//    int16_t volt_min_mode_27 = -27000;
-//    int16_t volt_max_mode_27 = 27000;       /* 5*2 = 10 байт */
+	uint16_t calibration_step;
+    int16_t  volt_min_mode_12;              /* Минимальное значение V в режиме 12 В */
+    int16_t  volt_max_mode_12;
+    int16_t  volt_min_mode_27;
+    int16_t  volt_max_mode_27;              /* 5*2 = 10 байт */
 
 	uint32_t SN;                            /* 4 байта */
 
@@ -110,9 +91,27 @@ union NVRAM {
 };
 //											1024 байт
 
-//--------------------------------------------------------------------------
-void crete_calibration_table(Table_t *calibTable);
-uint16_t volt2dgt(Table_t *calibTable, int16_t volt);
+/* Структура для вычисления интерполяциии*/
+struct data_volt2dgt {
+    uint16_t    yi;
+    uint16_t    Ca0;
+    uint16_t    Ca1;
+    uint16_t    a1;
+
+    float       count;
+    float       y;
+    float       a0;
+    float       CodeX;
+};
+
+/*-USER FUNCTIONS------------------------------------------------------------*/
+
+void calib_table_init(Table_t *ct);
+void calib_table_create_default(Table_t *ct);
+void calib_table_create_default(Table_t *ct);
+uint16_t volt2dgt(Table_t *ct, struct comparison_parameters *cp, enum DacChannel ch);
+
+/*---------------------------------------------------------------------------*/
 
 /* Base address of the Flash sectors */
 #define ADDR_FLASH_PAGE_0     ((uint32_t)0x08000000) /* Base @ of Page 0, 1 Kbytes */

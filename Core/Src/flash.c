@@ -6,8 +6,11 @@
  */
 
 #include "stm32f1xx_hal.h"
+
 #include "logic_calibration_table.h"
 #include "flash.h"
+
+#include "string.h"
 
 /*---------------------------------------------------------------------------*/
 
@@ -29,10 +32,33 @@ void flash_fill_calibTable(void)
 
 /*---------------------------------------------------------------------------*/
 /*
+ * @brief   Checks is there any calibration values in flash memory
+ * @retval  Status (0x01) or (0x00) if there is table or no
+ */
+uint8_t flash_is_calibTable_null(void)
+{
+    Table_t t;
+    volatile uint32_t addr = FLASH_TABLE_START_ADDR;
+
+    /* Копируем значения из флеш-памяти во временную переменную для
+     * того, чтобы проверить значение поля MagicNum. Копируем 50 байт
+     * с запасом, вдруг если в структуре Table_t изменятся какие-либо
+     * поля и адрес поля MagicNum в флеш-памяти будет другой. */
+    memcpy( &t, (uint32_t*)addr, 50 );
+
+    if ( t.MagicNum == MAGIC_KEY ) {
+        return 0x01;
+    }
+
+    return 0x00;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
  * @brief   Write calibration table into flash memory
  * @retval  HAL Status
  */
-HAL_StatusTypeDef flash_write_calibTable(void)
+HAL_StatusTypeDef flash_write_calibTable(union NVRAM *ram)
 {
     /* Create some variables */
     volatile uint32_t   addr    = FLASH_TABLE_START_ADDR;
@@ -42,7 +68,7 @@ HAL_StatusTypeDef flash_write_calibTable(void)
 
     /* Compare flash and ram content */
     while ( addr < FLASH_TABLE_STOP_ADDR ) {
-        if ( DevNVRAM.data32[index] != *(uint32_t *)addr ) {
+        if ( ram->data32[index] != *(uint32_t *)addr ) {
             ++err;
         }
         index += 1;
@@ -77,14 +103,14 @@ HAL_StatusTypeDef flash_write_calibTable(void)
         err     = 0;
         index   = 0;
         /* Increase number of rewritings */
-        DevNVRAM.sector.NWrite += 1;
+        ram->sector.NWrite += 1;
         /* Calculate calibration table checksum */
-        DevNVRAM.sector.CheckSum = HAL_CRC_Calculate( &hcrc,
-                                                      (uint32_t*)&DevNVRAM.calibration_table,
-                                                      (sizeof(DevNVRAM.calibration_table)/4) );
+        ram->sector.CheckSum = HAL_CRC_Calculate( &hcrc,
+                                                  (uint32_t*)&(ram->calibration_table),
+                                                  (sizeof(ram->calibration_table)/4) );
         /* Write flash */
         while (addr < FLASH_TABLE_STOP_ADDR) {
-            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, DevNVRAM.data32[index]) != HAL_OK) {
+            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr, ram->data32[index]) != HAL_OK) {
                 err++;
             }
             index += 1;
@@ -97,4 +123,14 @@ HAL_StatusTypeDef flash_write_calibTable(void)
         HAL_FLASH_Lock();
     }
     return status;
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * @brief   Read calibration table from flash memory and write it to some Table_t variable
+ */
+void flash_read_calibTable(Table_t *ct)
+{
+    volatile uint32_t addr = FLASH_TABLE_START_ADDR;
+    memcpy( ct, (uint32_t*)addr, sizeof(Table_t) );
 }

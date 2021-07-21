@@ -45,9 +45,35 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 
-enum RelState {     //RelayState =|1:m12|0:m27|
-    m12 = 0x01,
-    m27 = 0x00
+/* Режим работы щупа */
+enum RelayState {       //RelayState =|1:m12|0:m27|
+    M12 = 0x01,
+    M27 = 0x00
+};
+
+/* Каналы ЦАП */
+enum DacChannel {
+    CH_A = 0x00,         // ЦАП А
+    CH_B = 0x01          // ЦАП B
+};
+
+/* Полярность внешнего источника питания при калибовке */
+enum VipPolarity {
+    POSITIVE_POLARITY = 0x00, // GND - GND
+    NEGATIVE_POLARITY = 0x01  // GND - VCC
+};
+
+/*-USER TYPES AND STRUCTURES-------------------------------------------------*/
+
+/* Переменные для установки компарирования */
+struct comparison_parameters {
+  int16_t   dac_A_volt;     // ЦАП А, в вольтах
+  int16_t   dac_B_volt;     // ЦАП B, в вольтах
+  uint16_t  dac_A_dgt;      // ЦАП А, в значениях ЦАП
+  uint16_t  dac_B_dgt;      // ЦАП B, в значениях ЦАП
+
+  enum RelayState relay_state;  //режим работы |1:M12|0:M27|
+  bool set_level_status;                  //статус выполнения установки уровня
 };
 
 /* USER CODE END EC */

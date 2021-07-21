@@ -1,6 +1,7 @@
 /* USER CODE BEGIN Header */
 /*
- * TODO: В структуре Table_t вместо поля Firmware сделать поле, в котором будет храниться значение шага калибровки
+ * TODO: Протестировать обработку нажатия кнопок: длинное и одиночное нажатие ( в Callback )
+ * TODO: Узнать у Саши, почему не норм использовать extern переменные?
  *
  * */
 /* USER CODE END Header */
@@ -32,17 +33,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
-#define DEBUG_SWO           1
-#define TEST_UID            1
-#define TEST_DAC            1
-#define TEST_READ_BTN       1
-#define TEST_TIM_CAPTURE    1
-#define TEST_ADC            1
-#define TEST_USB            1
-#define USB_RESET           1
-#define TEST_RELAY          1
-#define DWT_INIT            1
 
 /* USER CODE END PD */
 
@@ -136,25 +126,25 @@ uint16_t VDAC_A = 0;
 uint16_t VDAC_B = 0;
 // Новая реализация. для приема значений в напряжениях, с поиском по структуре DevNVRAM выгруженной из памяти.
 //TODO: Установка цап реализованно только для канала A и режима m12. Нужно переписать с учетом режима работы. режим работы определяет какую таблицу использовать.
-void SetDacA(int16_t da)
+inline void SetDacA(int16_t da)
 {
-	VDAC_A = volt2dgt(&(DevNVRAM.calibration_table), da);
-	DAC_AD5322_Ch1(&hspi1, VDAC_A);
+//	VDAC_A = volt2dgt(&(DevNVRAM.calibration_table), da);
+//	DAC_AD5322_Ch1(&hspi1, VDAC_A);
 }
-void SetDacB(int16_t db) //BUG: Не работает. Установка цап реализованно только для канала A и режима m12. Нужно переписать с учетом режима работы. режим работы определяет какую таблицу использовать.
+inline void SetDacB(int16_t db) //BUG: Не работает. Установка цап реализованно только для канала A и режима m12. Нужно переписать с учетом режима работы. режим работы определяет какую таблицу использовать.
 {
-	VDAC_B = volt2dgt(&(DevNVRAM.calibration_table), db);
-	DAC_AD5322_Ch2(&hspi1, VDAC_B);
+//	VDAC_B = volt2dgt(&(DevNVRAM.calibration_table), db);
+//	DAC_AD5322_Ch2(&hspi1, VDAC_B);
 }
-void SetAllDAC()
+inline void SetAllDAC()
 {
 	DAC_AD5322_Ch1Ch2(&hspi1, VDAC_A, VDAC_B);
 }
-uint16_t GetDacA()
+inline uint16_t GetDacA()
 {
 	return VDAC_A;
 }
-uint16_t GetDacB()
+inline uint16_t GetDacB()
 {
 	return VDAC_B;
 }
@@ -261,7 +251,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 }
 #endif /* TEST_ADC */
 
-bool RelayState = m12; //TODO: проверить первое состояние --> первоначальное состояние реле 27V FIXME: Нужно изменить на m12 и подправить у Йоноса!
+bool relay_state = M12; // TODO: проверить первое состояние --> первоначальное состояние реле 27V
+                        // FIXME: Нужно изменить на m12 и подправить у Йоноса!
 
 /* USER CODE END 0 */
 
@@ -333,8 +324,7 @@ int main(void)
 
 /*---------------------------------------------------------------------------*/
 
-
-//	uint32_t timme = 0; // для таймера в 10 сек
+  calib_table_init( &DevNVRAM.calibration_table );
 
   /* USER CODE END 2 */
 
@@ -345,12 +335,6 @@ int main(void)
 	    if ( usb_rx_data.is_received == true ) {
 	        usb_rx_handler(&usb_rx_data);
         }
-		// Циклически проверяем соотвествует ли информация в памяти массиву настроек?
-//		if ((HAL_GetTick() - timme) > 10000) // интервал  10сек
-//		{
-//			timme = HAL_GetTick();
-//		}
-//
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
