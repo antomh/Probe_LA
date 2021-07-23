@@ -383,7 +383,20 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
 
         /* Команда приема шага калибровки */
         case 0x0E :
+        {
+            if (usb->len < 10) {
+                usb_tx_buff[1] = 0x01;  // ошибка
+            }
+
+            const uint8_t number_calib_parameters = 5;
+            memcpy( &DevNVRAM.calibration_table.calibration_step,
+                    &usb->buff[1],
+                    sizeof(uint16_t) * number_calib_parameters );
+
+            usb_tx_buff[0] = cmd;
+            CDC_Transmit_FS(usb_tx_buff, 2);
             break;
+        }
 
         /* По умолчанию, если прочитанная команда не соответствует ни одной команде
          * в протоколе, отправляем в ответ просто 0, как сигнал ошибки. */

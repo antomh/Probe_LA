@@ -10,7 +10,7 @@
 
 void                flash_fill_calibTable(void);
 uint8_t             flash_is_calibTable_null(void);
-HAL_StatusTypeDef flash_write_calibTable(union NVRAM *ram);
+HAL_StatusTypeDef   flash_write_calibTable(union NVRAM *ram);
 void                flash_read_calibTable(Table_t *ct);
 
 

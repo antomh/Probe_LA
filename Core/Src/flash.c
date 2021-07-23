@@ -116,8 +116,7 @@ HAL_StatusTypeDef flash_write_calibTable(union NVRAM *ram)
             index += 1;
             addr += 4;
             /* Wait until flash is busy */
-            while ( (FLASH->SR & FLASH_SR_BSY) != 0 )
-                ;
+            while ( (FLASH->SR & FLASH_SR_BSY) != 0 ) continue;
         }
         /* Lock flash */
         HAL_FLASH_Lock();
