@@ -1,7 +1,5 @@
 /* USER CODE BEGIN Header */
 /*
- * TODO: Сообщить Йоносу, что добавить в утилиту (какие кнопки нужны и т.п.)
- * TODO: Предоставить Йоносу информацию о том, как высчитывается CRC таблицы
  * TODO: Протестировать обработку нажатия кнопок: длинное и одиночное нажатие ( в Callback )
  * TODO: Закончить перенос кода из проекта Саши
  * TODO: Протестировать команду приема параметров калибровки
@@ -325,6 +323,10 @@ int main(void)
 #endif /* TEST_ADC */
 
 /*---------------------------------------------------------------------------*/
+  uint32_t buf[] = {
+            0xFE
+  };
+  uint32_t a = HAL_CRC_Calculate(&hcrc, buf, 2);
 
   calib_table_init( &DevNVRAM.calibration_table );
 
@@ -448,8 +450,6 @@ static void MX_CRC_Init(void)
   /* USER CODE END CRC_Init 0 */
 
   /* USER CODE BEGIN CRC_Init 1 */
-
-    hcrc.Instance->IDR
 
   /* USER CODE END CRC_Init 1 */
   hcrc.Instance = CRC;
@@ -623,13 +623,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-
-  /* User code
-   * Typically cleared while code generaiton */
-
-  USB_Reset();
-
-  /* End of user code */
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);

@@ -160,19 +160,16 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         /* Команда запроса идентификатора устройства */
         case 0x07 :
         {
-            /*
-            char str[9] = {
-                0,0,0,0,0,0,0,0,0
-            };
-            memcpy(str, "SN", strlen("SN"));
-            itoa(SN_DEFINE, str + 2, 16);
-            */
+//            /* TODO: Проверить на корректность преобразования SERIAL_NUMBER в массив из uint8, для 1121001 должно быть 11 1A E9 */
+//            memcpy( &usb_tx_buff[1], SERIAL_NUMBER, 3 );
+//            CDC_Transmit_FS(usb_tx_buff, 4);
 
             char str[] = {"prb_v0.3"};
 
             usb_tx_buff[0] = cmd;
             usb_tx_buff[1] = strlen(str);
             memcpy(usb_tx_buff + 2, str, strlen(str));
+
             CDC_Transmit_FS(usb_tx_buff, strlen(str) + 2);
             break;
         }
@@ -394,7 +391,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
             break;
         }
 
-        /* Команда приема шага калибровки */
+        /* Команда приема параметров калибровочной таблицы */
         case 0x0E :
         {
             if (usb->len < 10) {
@@ -402,6 +399,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
             }
 
             const uint8_t number_calib_parameters = 5;
+
             memcpy( &DevNVRAM.calibration_table.calibration_step,
                     &usb->buff[1],
                     sizeof(uint16_t) * number_calib_parameters );

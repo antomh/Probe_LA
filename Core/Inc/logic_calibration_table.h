@@ -17,10 +17,10 @@
 #define MAGIC_KEY                   0x48151623
 #define HARDWIRE_NUMBER             0x06
 #define FIRMWARE_NUMBER             0x05
-#define SERIAL_NUMBER               0x0000001
+#define SERIAL_NUMBER               1121001
 //--------------------------------------------------------------------------
 // Параметры щупа
-#define MAX_VAL_M12         86    //	шаг 0,2В в диапозоне [-5:12:0,2] 85  TODO:найти что за 3 значения?!
+#define MAX_VAL_M12         86    //	шаг 0,2В в диапозоне [-5:12:0,2] 85
 #define MAX_VAL_M27         162   //	шаг 0,2В в диапозоне [-30:30:0,2] 163*0.2= 32,6
 
 #define STEP_CALIBRATE      200
@@ -39,7 +39,6 @@
 #define DAC_MAX 4096
 
 // Макрос для перевода напряжения (в вольтах) в код ЦАП
-//#define VLT_TO_DGT(V) (uint16_t)(((V) / DAC_REF) * DAC_MAX)
 #define VLT_TO_DGT(V) (float)(((V) / DAC_REF) * DAC_MAX)
 
 

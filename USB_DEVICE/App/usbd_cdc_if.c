@@ -150,7 +150,7 @@ void USB_Reset(void)
     /* Reset USB DP (D+) */
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    /* Инициализируем пин DP как выход */
+    /* �?нициализируем пин DP как выход */
     GPIO_InitStruct.Pin = GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
