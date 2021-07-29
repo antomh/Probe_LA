@@ -11,7 +11,7 @@
 void                flash_fill_calibTable(void);
 uint8_t             flash_is_calibTable_null(void);
 HAL_StatusTypeDef   flash_write_calibTable(union NVRAM *ram);
-void                flash_read_calibTable(Table_t *ct);
+void                flash_read_sector(union NVRAM *ram);
 
 
 #endif /* INC_FLASH_H_ */

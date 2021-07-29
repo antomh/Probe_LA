@@ -352,18 +352,31 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         }
             break;
 
-        /* Команда запроса CRC 1-4 таблицы */
-        case 0x0B :
+        /* Команда запроса CRC 1-4 таблицы во флеше */
+//        case 0x0B :
+//        {
+        case 0x0C :
+        {
+            uint32_t crc;
+            crc_read_from_flash(&crc);
+            usb_tx_buff[0] = cmd;
+            memcpy( &usb_tx_buff[1], &crc, 4 );
+            CDC_Transmit_FS(usb_tx_buff, 5 );
+        }
             break;
 
         /* Команда приема длины калибровочной таблицы */
-        case 0x0D :
+//        case 0x0C :
+        case 0x0B :
+//        case 0x0D :
             /* Правильная команда тут - 0х0С, изменено для тестирования */
             break;
 
         /* Команда записи во флеш калибровочной таблицы */
-        case 0x0C :
+        case 0x0D :
         {
+//        case 0x0C :
+//        {
             /* Правильная команда тут - 0х0D, изменено для тестирования */
             if (usb->len >= 2)
             {

@@ -17,6 +17,7 @@ typedef enum {
 
 /*---------------------------------------------------------------------------*/
 
-HAL_StatusTypeDef crc_calibTable_calculate(uint16_t *calTable, calTableType t_calTable, uint32_t *crc);
+HAL_StatusTypeDef   crc_calibTable_calculate(uint16_t *calTable, calTableType t_calTable, uint32_t *crc);
+void                crc_read_from_flash(uint32_t *crc);
 
 #endif /* INC_CRC_H_ */

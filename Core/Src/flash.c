@@ -68,7 +68,7 @@ HAL_StatusTypeDef flash_write_calibTable(union NVRAM *ram)
 
     /* Compare flash and ram content */
     while ( addr < FLASH_TABLE_STOP_ADDR ) {
-        if ( ram->data32[index] != *(uint32_t *)addr ) {
+        if ( ram->data32[index] != *(uint32_t*)addr ) {
             ++err;
         }
         index += 1;
@@ -126,10 +126,10 @@ HAL_StatusTypeDef flash_write_calibTable(union NVRAM *ram)
 
 /*---------------------------------------------------------------------------*/
 /*
- * @brief   Read calibration table from flash memory and write it to some Table_t variable
+ * @brief   Read calibration table from flash memory and write it to some variable
  */
-void flash_read_calibTable(Table_t *ct)
+void flash_read_sector(union NVRAM *ram)
 {
     volatile uint32_t addr = FLASH_TABLE_START_ADDR;
-    memcpy( ct, (uint32_t*)addr, sizeof(Table_t) );
+    memcpy( ram, (uint32_t*)addr, sizeof(struct FLASH_Sector) );
 }

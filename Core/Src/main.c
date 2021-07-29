@@ -1,11 +1,10 @@
 /* USER CODE BEGIN Header */
 /*
- * TODO: Сообщить Йоносу об изменениях в протоколе команд (добавилась команда на отправку параметров калибровки)
- *       + сказать ему, что добавить в утилиту
+ * TODO: Сообщить Йоносу, что добавить в утилиту (какие кнопки нужны и т.п.)
  * TODO: Предоставить Йоносу информацию о том, как высчитывается CRC таблицы
- * TODO: Записывать CRC при высчитывании в переменную структуры
  * TODO: Протестировать обработку нажатия кнопок: длинное и одиночное нажатие ( в Callback )
  * TODO: Закончить перенос кода из проекта Саши
+ * TODO: Протестировать команду приема параметров калибровки
  *
  * */
 /* USER CODE END Header */
@@ -57,8 +56,7 @@ TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
 
-/* Создаем переменную типа usb_rx_data_type.
- * Описание структуры см. main.h */
+/* Структура для организации приема пакетов по USB */
 usb_rx_data_type usb_rx_data = {
         .is_handled     = true,
         .is_received    = false,
@@ -450,6 +448,8 @@ static void MX_CRC_Init(void)
   /* USER CODE END CRC_Init 0 */
 
   /* USER CODE BEGIN CRC_Init 1 */
+
+    hcrc.Instance->IDR
 
   /* USER CODE END CRC_Init 1 */
   hcrc.Instance = CRC;

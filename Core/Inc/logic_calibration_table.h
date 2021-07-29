@@ -74,9 +74,9 @@ typedef struct
  * CheckSum - data CRC
  */
 struct FLASH_Sector {
-	uint32_t 	data[256 - 2]; // 			254* 4 = 1016 байта (1016 байт)
-	uint32_t 	NWrite; //					4 байта
-	uint32_t 	CheckSum; //				4 байта ==>1016 + 4 + 4 = 1024
+	uint32_t 	data[256 - 2];              // 254*4 = 1016 байта (1016 байт)
+	uint32_t 	NWrite;                     // 4 байта
+	uint32_t 	CheckSum;                   // 4 байта ==>1016 + 4 + 4 = 1024
 };
 
 /*
@@ -85,11 +85,11 @@ struct FLASH_Sector {
  * data32               - pure register data
  */
 union NVRAM {
-	Table_t 	calibration_table; //		1014 байт
-	struct 		FLASH_Sector sector; //		1024 байт
-	uint32_t	data32[256]; // 			1024 байт
+	Table_t             calibration_table;  // 1014 байт
+	struct FLASH_Sector sector;             // 1024 байт
+	uint32_t            data32[256];        // 1024 байт
 };
-//											1024 байт
+                                            // Common union size = 1024 байт
 
 /* Структура для вычисления интерполяциии*/
 struct data_volt2dgt {

@@ -6,6 +6,9 @@
  */
 
 #include "stm32f1xx_hal.h"
+
+#include "string.h"
+
 #include "crc.h"
 #include "logic_calibration_table.h"
 
@@ -40,4 +43,16 @@ HAL_StatusTypeDef crc_calibTable_calculate(uint16_t *calTable, calTableType t_ca
     else {
         return HAL_ERROR;
     }
+}
+
+/*---------------------------------------------------------------------------*/
+/*
+ * @brief   Read calibration table CRC from flash memory
+ * @param   Output variable for CRC
+ */
+void crc_read_from_flash(uint32_t *crc)
+{
+    struct FLASH_Sector s;
+    memcpy( &s, (uint32_t*)FLASH_TABLE_START_ADDR, sizeof(struct FLASH_Sector) );
+    *crc = s.CheckSum;
 }

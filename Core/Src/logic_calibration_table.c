@@ -97,7 +97,7 @@ void calib_table_init(Table_t *ct)
     }
     else {
         /* Чтение таблицы из флеш-памяти в переменную DevNVRAM */
-        flash_read_calibTable( &DevNVRAM.calibration_table );
+        flash_read_sector( &DevNVRAM );
     }
 }
 
