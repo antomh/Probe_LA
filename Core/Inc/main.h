@@ -65,15 +65,27 @@ enum VipPolarity {
 
 /*-USER TYPES AND STRUCTURES-------------------------------------------------*/
 
-/* Переменные для установки компарирования */
+/* Переменные для установки компарирования для работы ЦАП и реле */
 struct comparison_parameters {
   int16_t   dac_A_volt;     // ЦАП А, в вольтах
   int16_t   dac_B_volt;     // ЦАП B, в вольтах
   uint16_t  dac_A_dgt;      // ЦАП А, в значениях ЦАП
   uint16_t  dac_B_dgt;      // ЦАП B, в значениях ЦАП
 
-  enum RelayState relay_state;  //режим работы |1:M12|0:M27|
-  bool set_level_status;                  //статус выполнения установки уровня
+  enum RelayState relay_state;  // режим работы |1:M12|0:M27|
+  bool set_level_status;        // статус выполнения установки уровня
+};
+
+/* Переменные для калибровки */
+struct calibration_parameters {
+    uint8_t is_tim_working;
+    uint8_t tim3_overflow_counter;
+    uint8_t tim4_overflow_counter;
+
+    uint16_t g_tim3;
+    uint16_t g_tim4;
+
+    enum VipPolarity v_polarity;    // Полярность источника питания
 };
 
 /* USER CODE END EC */
@@ -87,51 +99,49 @@ struct comparison_parameters {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-//--------------------------------------------------------------------------
-void SetDacA(int16_t da);
-void SetDacB(int16_t db);
-void SetAllDAC();
-//--------------------------------------------------------------------------
+//----------------------------------------------------------------------------*/
+void SetDacA(void);
+void SetDacB(void);
+void SetAllDAC(void);
+//----------------------------------------------------------------------------*/
 uint16_t GetDacA();
 uint16_t GetDacB();
 uint16_t GetADC();
 uint8_t GetBtnRunState();
 uint8_t GetBtnUpState();
 uint8_t GetBtnDownState();
-//--------------------------------------------------------------------------
+//----------------------------------------------------------------------------*/
 uint8_t GetInHL();
 uint8_t GetInLL();
 void ResInHL();
 void ResInLL();
-//--------------------------------------------------------------------------
+//----------------------------------------------------------------------------*/
 void EnableTIM3_PB4();
 void resValTIM3_PB4();
 
 void EnableTIM4_PB6();
 void resValTIM4_PB6();
-//--------------------------------------------------------------------------
-uint32_t getCRC_table_a_m12();
-uint32_t getCRC_table_b_m12();
-uint32_t getCRC_table_a_m27();
-uint32_t getCRC_table_b_m27();
-
-void writeTable();
 
 uint16_t GetTIM3(void);
 uint16_t GetTIM4(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define AD5312_LDAC_Pin GPIO_PIN_1
-#define AD5312_LDAC_GPIO_Port GPIOA
-#define Relay_Pin GPIO_PIN_2
-#define Relay_GPIO_Port GPIOA
-#define AD5312_SYNC_Pin GPIO_PIN_4
-#define AD5312_SYNC_GPIO_Port GPIOA
-#define AD5312_SCLK_Pin GPIO_PIN_5
-#define AD5312_SCLK_GPIO_Port GPIOA
-#define AD5312_DIN_Pin GPIO_PIN_7
-#define AD5312_DIN_GPIO_Port GPIOA
+#define AD5312_LDAC_Pin         GPIO_PIN_1
+#define AD5312_LDAC_GPIO_Port   GPIOA
+
+#define Relay_Pin               GPIO_PIN_2
+#define Relay_GPIO_Port         GPIOA
+
+#define AD5312_SYNC_Pin         GPIO_PIN_4
+#define AD5312_SYNC_GPIO_Port   GPIOA
+
+#define AD5312_SCLK_Pin         GPIO_PIN_5
+#define AD5312_SCLK_GPIO_Port   GPIOA
+
+#define AD5312_DIN_Pin          GPIO_PIN_7
+#define AD5312_DIN_GPIO_Port    GPIOA
+
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

@@ -75,7 +75,7 @@ union NVRAM DevNVRAM;
 /* Флаг для проверки обновления калибровочной таблицы в цикле while(1) */
 bool changeTableFlag = false;
 
-/* Определение и заполнение структур для работы с кнопками */
+/* Заполнение структур для работы с кнопками */
 struct btn btn_pin_12 = {
         .is_long_press      = 0,
         .was_short_pressed  = 0,
@@ -95,6 +95,25 @@ struct btn btn_pin_14 = {
         .counter            = 0
 };
 
+/* Заполнение структуры для ЦАП и реле */
+struct comparison_parameters comparison_parameter = {
+        .dac_A_dgt      = 0,
+        .dac_A_volt     = 0,
+        .dac_B_dgt      = 0,
+        .dac_B_volt     = 0,
+        .relay_state    = M12
+};
+
+/* Заполнение структуры для калибровки */
+struct calibration_parameters calibration = {
+        .is_tim_working         = 0,
+        .tim3_overflow_counter  = 0,
+        .tim4_overflow_counter  = 0,
+        .g_tim3                 = 0,
+        .g_tim4                 = 0,
+        .v_polarity             = POSITIVE_POLARITY
+};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -107,43 +126,339 @@ static void MX_TIM4_Init(void);
 static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
 
-void USB_Reset(void);
+/* Установка режима ЦАП А */
+void SetDacA(void)
+{
+    switch (comparison_parameter.relay_state) {
+        case M12:
+            if ( comparison_parameter.dac_A_volt >= DevNVRAM.calibration_table.volt_min_mode_12 &&
+                 comparison_parameter.dac_A_volt <= DevNVRAM.calibration_table.volt_max_mode_12)
+            {
+                comparison_parameter.dac_A_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_A );
+                DAC_AD5322_Ch1(&hspi1, comparison_parameter.dac_A_dgt);
+                comparison_parameter.set_level_status = SUCCESS;
+                break;
+            }
+            else {
+                comparison_parameter.set_level_status = ERROR;
+                break;
+            }
 
-/*---------------------------------------------*/
-#if DEBUG_SWO
-int _write(int32_t file, uint8_t *ptr, int32_t len)
-{
-	for (int i = 0; i < len; i++)
-	{
-		ITM_SendChar(*ptr++);
-	}
-	return len;
+        case M27:
+            if ( comparison_parameter.dac_A_volt >= DevNVRAM.calibration_table.volt_min_mode_27 &&
+                 comparison_parameter.dac_A_volt <= DevNVRAM.calibration_table.volt_max_mode_27)
+            {
+                comparison_parameter.dac_A_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_A );
+                DAC_AD5322_Ch1(&hspi1, comparison_parameter.dac_A_dgt);
+                comparison_parameter.set_level_status = SUCCESS;
+                break;
+            }
+            else {
+                comparison_parameter.set_level_status = ERROR;
+                break;
+            }
+        }
 }
-#endif /* DEBUG_SWO */
-/*---------------------------------------------*/
 
-uint16_t VDAC_A = 0;
-uint16_t VDAC_B = 0;
-// Новая реализация. для приема значений в напряжениях, с поиском по структуре DevNVRAM выгруженной из памяти.
-//TODO: Установка цап реализованно только для канала A и режима m12. Нужно переписать с учетом режима работы. режим работы определяет какую таблицу использовать.
-inline void SetDacA(int16_t da)
+/* Установка режима ЦАП B */
+void SetDacB(void)
 {
-//	VDAC_A = volt2dgt(&(DevNVRAM.calibration_table), da);
-//	DAC_AD5322_Ch1(&hspi1, VDAC_A);
+    switch (comparison_parameter.relay_state) {
+        case M12:
+            if ( comparison_parameter.dac_B_volt >= DevNVRAM.calibration_table.volt_min_mode_12 &&
+                 comparison_parameter.dac_B_volt <= DevNVRAM.calibration_table.volt_max_mode_12)
+            {
+                comparison_parameter.dac_B_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_B);
+                DAC_AD5322_Ch2(&hspi1, comparison_parameter.dac_B_dgt);
+                comparison_parameter.set_level_status = SUCCESS;
+                break;
+            }
+            else {
+                comparison_parameter.set_level_status = ERROR;
+                break;
+            }
+
+        case M27:
+            if ( comparison_parameter.dac_B_volt >= DevNVRAM.calibration_table.volt_min_mode_27 &&
+                 comparison_parameter.dac_B_volt <= DevNVRAM.calibration_table.volt_max_mode_27)
+            {
+                comparison_parameter.dac_B_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_B);
+                DAC_AD5322_Ch2(&hspi1, comparison_parameter.dac_B_dgt);
+                comparison_parameter.set_level_status = SUCCESS;
+                break;
+            }
+            else {
+                comparison_parameter.set_level_status = ERROR;
+                break;
+            }
+        }
 }
-inline void SetDacB(int16_t db) //BUG: Не работает. Установка цап реализованно только для канала A и режима m12. Нужно переписать с учетом режима работы. режим работы определяет какую таблицу использовать.
+
+/*  */
+void SetAllDAC(void)
 {
-//	VDAC_B = volt2dgt(&(DevNVRAM.calibration_table), db);
-//	DAC_AD5322_Ch2(&hspi1, VDAC_B);
+    switch (comparison_parameter.relay_state) {
+        case M12:
+            if ( comparison_parameter.dac_A_volt >= DevNVRAM.calibration_table.volt_min_mode_12 &&
+                 comparison_parameter.dac_A_volt <= DevNVRAM.calibration_table.volt_max_mode_12 &&
+                 comparison_parameter.dac_B_volt >= DevNVRAM.calibration_table.volt_min_mode_12 &&
+                 comparison_parameter.dac_B_volt <= DevNVRAM.calibration_table.volt_max_mode_12 )
+            {
+                comparison_parameter.dac_A_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_A );
+                comparison_parameter.dac_B_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_B );
+                DAC_AD5322_Ch1Ch2(&hspi1, comparison_parameter.dac_A_dgt, comparison_parameter.dac_B_dgt);
+                comparison_parameter.set_level_status = SUCCESS;
+                break;
+            }
+            else {
+                comparison_parameter.set_level_status = ERROR;
+                break;
+            }
+        case M27:
+            if ( comparison_parameter.dac_A_volt >= DevNVRAM.calibration_table.volt_min_mode_27 &&
+                 comparison_parameter.dac_A_volt <= DevNVRAM.calibration_table.volt_max_mode_27 &&
+                 comparison_parameter.dac_B_volt >= DevNVRAM.calibration_table.volt_min_mode_27 &&
+                 comparison_parameter.dac_B_volt <= DevNVRAM.calibration_table.volt_max_mode_27 )
+            {
+                comparison_parameter.dac_A_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_A );
+                comparison_parameter.dac_B_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_B );
+                DAC_AD5322_Ch1Ch2(&hspi1, comparison_parameter.dac_A_dgt, comparison_parameter.dac_B_dgt);
+                comparison_parameter.set_level_status = SUCCESS;
+                break;
+            }
+            else {
+                comparison_parameter.set_level_status = ERROR;
+                break;
+            }
+    }
 }
-inline void SetAllDAC()
+
+void unit_test(void)
 {
-	DAC_AD5322_Ch1Ch2(&hspi1, VDAC_A, VDAC_B);
+    /*проверка на вхождение в MIN m12*/
+    comparison_parameter.relay_state = M12;
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_12;
+    SetDacA();
+    if (comparison_parameter.set_level_status == ERROR)
+    {
+        printf("unit test in range SetDacA m12->fail");
+    }
+    else
+    {
+        printf("unit test in range SetDacA m12->pass");
+    }
+
+    SetDacB();
+    if (comparison_parameter.set_level_status == ERROR)
+    {
+        printf("unit test in range SetDacB m12->fail");
+    }
+    else
+    {
+        printf("unit_test in range SetDacB m12->pass");
+    }
+
+    /*проверка на выход из MIN m12*/
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
+    SetDacA();
+    if (comparison_parameter.set_level_status == ERROR)
+    {
+        printf("unit_test out rangeSetDacB m12->pass");
+    }
+    else
+    {
+        printf("unit_test out rangeSetDacB m12->fail");
+    }
+    SetDacB();
+    if (comparison_parameter.set_level_status == ERROR)
+    {
+        printf("unit_test out rangeSetDacB m12->pass");
+    }
+    else
+    {
+        printf("unit_test out rangeSetDacB m12->fail");
+    }
+/*проверка на выход из MAX m12*/
+
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
+SetDacA();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m12->pass");
 }
+else
+{
+  printf("unit_test out rangeSetDacB m12->fail");
+}
+SetDacB();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m12->pass");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m12->fail");
+}
+
+/*проверка на выход из норм m12*/
+
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12;
+SetAllDAC();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m12->fail");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m12->pass");
+}
+/*проверка на выход из мин m12*/
+
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
+SetAllDAC();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m12->pass");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m12->fail");
+}
+/*проверка на выход из макс m12*/
+
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
+SetAllDAC();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m12->pass");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m12->fail");
+}
+
+
+
+/*проверка на вхождение в MIN m27*/
+comparison_parameter.relay_state = m27;
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27;
+SetDacA();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit test in range SetDacA m27->fail");
+}
+else
+{
+  printf("unit test in range SetDacA m27->pass");
+}
+
+SetDacB();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit test in range SetDacB m27->fail");
+}
+else
+{
+  printf("unit_test in range SetDacB m27->pass");
+}
+/*проверка на выход из MIN m12*/
+
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
+SetDacA();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m27->pass");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m27->fail");
+}
+SetDacB();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m27->pass");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m27->fail");
+}
+/*проверка на выход из MAX m12*/
+
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
+SetDacA();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m27->pass");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m27->fail");
+}
+SetDacB();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m27->pass");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m27->fail");
+}
+
+/*проверка на выход из норм */
+
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27;
+SetAllDAC();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m27->fail");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m27->pass");
+}
+/*проверка на выход из мин m12*/
+comparison_parameter.relay_state = m12;
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
+SetAllDAC();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m27->pass");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m27->fail");
+}
+/*проверка на выход из макс m12*/
+comparison_parameter.relay_state = m12;
+comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
+comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
+SetAllDAC();
+if (comparison_parameter.set_level_status == ERROR)
+{
+  printf("unit_test out rangeSetDacB m27->pass");
+}
+else
+{
+  printf("unit_test out rangeSetDacB m27->fail");
+}
+}
+
 inline uint16_t GetDacA()
 {
 	return VDAC_A;
 }
+
 inline uint16_t GetDacB()
 {
 	return VDAC_B;
@@ -323,10 +638,6 @@ int main(void)
 #endif /* TEST_ADC */
 
 /*---------------------------------------------------------------------------*/
-  uint32_t buf[] = {
-            0xFE
-  };
-  uint32_t a = HAL_CRC_Calculate(&hcrc, buf, 2);
 
   calib_table_init( &DevNVRAM.calibration_table );
 

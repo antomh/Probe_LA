@@ -22,13 +22,14 @@
 #include "stdlib.h"
 
 /*-EXTERNAL VARIABLES--------------------------------------------------------*/
-
 extern bool relay_state;
 extern bool changeTableFlag;
 extern union NVRAM DevNVRAM;
 extern struct btn btn_pin_12;
 extern struct btn btn_pin_13;
 extern struct btn btn_pin_14;
+//extern struct state_parameter_compare param_comp;
+//extern volatile struct state_calibrate_tim tim_capture;
 
 /*---------------------------------------------------------------------------*/
 
