@@ -76,6 +76,9 @@ HAL_StatusTypeDef   usb_rx_handler(usb_rx_data_type *usb);
     0x0E - Прием параметров калибровки:
                                                     data: 0x0E + 10B ([Шаг калибровки][Мин. V при 12 В][Макс. V при 12 В][Мин. V при 27 В][Макс. V при 27 В])
                                                     answer: 0x0E + 1B status
+    0x0F - Считывание калибровочной таблицы из flash-памяти щупа
+                                                    data: [0x0F]        answer: [0x0F][1-4][start number][end number][data]
+
     --------------------------------------------------------------------------
     status
     0x00 - успешно

@@ -39,34 +39,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := Probe_LA_v5_calibrate_table
+BUILD_ARTIFACT_NAME := Probe_LA
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-Probe_LA_v5_calibrate_table.elf \
+Probe_LA.elf \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-Probe_LA_v5_calibrate_table.list \
+Probe_LA.list \
 
 OBJCOPY_BIN += \
-Probe_LA_v5_calibrate_table.bin \
+Probe_LA.bin \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: Probe_LA_v5_calibrate_table.elf secondary-outputs
+main-build: Probe_LA.elf secondary-outputs
 
 # Tool invocations
-Probe_LA_v5_calibrate_table.elf: $(OBJS) $(USER_OBJS) D:\projects\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Probe_LA_v5_calibrate_table.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\projects\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Probe_LA_v5_calibrate_table.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Probe_LA.elf: $(OBJS) $(USER_OBJS) D:\projects\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Probe_LA.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\projects\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Probe_LA.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -75,19 +75,19 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-Probe_LA_v5_calibrate_table.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Probe_LA_v5_calibrate_table.list"
+Probe_LA.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Probe_LA.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-Probe_LA_v5_calibrate_table.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "Probe_LA_v5_calibrate_table.bin"
+Probe_LA.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "Probe_LA.bin"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(SIZE_OUTPUT)$(OBJDUMP_LIST)$(EXECUTABLES)$(OBJS)$(S_DEPS)$(S_UPPER_DEPS)$(C_DEPS)$(OBJCOPY_BIN) Probe_LA_v5_calibrate_table.elf
+	-$(RM) $(SIZE_OUTPUT)$(OBJDUMP_LIST)$(EXECUTABLES)$(OBJS)$(S_DEPS)$(S_UPPER_DEPS)$(C_DEPS)$(OBJCOPY_BIN) Probe_LA.elf
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_BIN)
