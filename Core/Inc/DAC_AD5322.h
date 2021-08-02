@@ -23,7 +23,7 @@
 
 // Макрос для перевода напряжения (в вольтах) в код ЦАП
 //#define VLT_TO_DGT(V) (uint16_t)(((V) / DAC_REF) * DAC_MAX)
-#define VLT_TO_DGT(V) (float)(((V) / DAC_REF) * DAC_MAX)
+//#define VLT_TO_DGT(V) (float)(((V) / DAC_REF) * DAC_MAX)
 
 #define AD5312_LDAC_Pin			GPIO_PIN_1
 #define AD5312_LDAC_GPIO_Port	GPIOA

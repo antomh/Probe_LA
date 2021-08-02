@@ -32,7 +32,6 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "utils.h"
 #include "stdbool.h"
 
 /* USER CODE END Includes */
@@ -99,31 +98,20 @@ struct calibration_parameters {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-//----------------------------------------------------------------------------*/
-void SetDacA(void);
-void SetDacB(void);
-void SetAllDAC(void);
-//----------------------------------------------------------------------------*/
-uint16_t GetDacA();
-uint16_t GetDacB();
-uint16_t GetADC();
-uint8_t GetBtnRunState();
-uint8_t GetBtnUpState();
-uint8_t GetBtnDownState();
-//----------------------------------------------------------------------------*/
-uint8_t GetInHL();
-uint8_t GetInLL();
-void ResInHL();
-void ResInLL();
-//----------------------------------------------------------------------------*/
-void EnableTIM3_PB4();
-void resValTIM3_PB4();
+/*----------------------------------------------------------------------------*/
+void        SetDacA(void);
+void        SetDacB(void);
+void        SetAllDAC(void);
+uint16_t    GetADC(void);
+/*----------------------------------------------------------------------------*/
+void        EnableTIM3(void);
+void        resValTIM3(void);
 
-void EnableTIM4_PB6();
-void resValTIM4_PB6();
+void        EnableTIM4(void);
+void        resValTIM4(void);
 
-uint16_t GetTIM3(void);
-uint16_t GetTIM4(void);
+uint16_t    GetTIM3(void);
+uint16_t    GetTIM4(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/

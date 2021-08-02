@@ -59,4 +59,5 @@ Debug/makefile
 *.list
 Debug/Probe_LA_v5_calibrate_table.bin
 Debug/Probe_LA_v5_calibrate_table.list
-/Release/
+
+/.vscode

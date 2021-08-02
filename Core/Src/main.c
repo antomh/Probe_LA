@@ -53,6 +53,8 @@ TIM_HandleTypeDef htim3;
 TIM_HandleTypeDef htim4;
 
 /* USER CODE BEGIN PV */
+/* Объединение для работы с калибровочной таблицей */
+union NVRAM DevNVRAM;
 
 /* Структура для организации приема пакетов по USB */
 usb_rx_data_type usb_rx_data = {
@@ -68,12 +70,6 @@ usb_rx_data_type usb_rx_data = {
                            0,0,0,0,0,0,0,0,
                            0,0,0,0,0,0,0,0}
 };
-
-/* Объединение для работы с калибровочной таблицей */
-union NVRAM DevNVRAM;
-
-/* Флаг для проверки обновления калибровочной таблицы в цикле while(1) */
-bool changeTableFlag = false;
 
 /* Заполнение структур для работы с кнопками */
 struct btn btn_pin_12 = {
@@ -97,11 +93,11 @@ struct btn btn_pin_14 = {
 
 /* Заполнение структуры для ЦАП и реле */
 struct comparison_parameters comparison_parameter = {
-        .dac_A_dgt      = 0,
-        .dac_A_volt     = 0,
-        .dac_B_dgt      = 0,
-        .dac_B_volt     = 0,
-        .relay_state    = M12
+        .dac_A_dgt          = 0,
+        .dac_A_volt         = 0,
+        .dac_B_dgt          = 0,
+        .dac_B_volt         = 0,
+        .relay_state        = M12
 };
 
 /* Заполнение структуры для калибровки */
@@ -194,7 +190,7 @@ void SetDacB(void)
         }
 }
 
-/*  */
+/* Установка режимов */
 void SetAllDAC(void)
 {
     switch (comparison_parameter.relay_state) {
@@ -233,8 +229,10 @@ void SetAllDAC(void)
     }
 }
 
-void unit_test(void)
+uint32_t unit_test(void)
 {
+    uint32_t result = 0;
+
     /*проверка на вхождение в MIN m12*/
     comparison_parameter.relay_state = M12;
     comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12;
@@ -242,282 +240,198 @@ void unit_test(void)
     SetDacA();
     if (comparison_parameter.set_level_status == ERROR)
     {
-        printf("unit test in range SetDacA m12->fail");
+        result = (1 << 0);
     }
-    else
-    {
-        printf("unit test in range SetDacA m12->pass");
-    }
-
     SetDacB();
     if (comparison_parameter.set_level_status == ERROR)
     {
-        printf("unit test in range SetDacB m12->fail");
-    }
-    else
-    {
-        printf("unit_test in range SetDacB m12->pass");
+        result = (1 << 0);
     }
 
     /*проверка на выход из MIN m12*/
     comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
     comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
     SetDacA();
+    if (comparison_parameter.set_level_status != ERROR)
+    {
+        result = (1 << 1);
+    }
+    SetDacB();
+    if (comparison_parameter.set_level_status != ERROR)
+    {
+        result = (1 << 1);
+    }
+
+    /*проверка на выход из MAX m12*/
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
+    SetDacA();
+    if (comparison_parameter.set_level_status != ERROR)
+    {
+        result = (1 << 2);
+    }
+    SetDacB();
+    if (comparison_parameter.set_level_status != ERROR)
+    {
+        result = (1 << 2);
+    }
+
+    /*проверка на выход из норм m12*/
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12;
+    SetAllDAC();
     if (comparison_parameter.set_level_status == ERROR)
     {
-        printf("unit_test out rangeSetDacB m12->pass");
+        result = (1 << 3);
     }
-    else
+
+    /*проверка на выход из мин m12*/
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
+    SetAllDAC();
+    if (comparison_parameter.set_level_status != ERROR)
     {
-        printf("unit_test out rangeSetDacB m12->fail");
+        result = (1 << 4);
+    }
+
+    /*проверка на выход из макс m12*/
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
+    SetAllDAC();
+    if (comparison_parameter.set_level_status != ERROR)
+    {
+        result = (1 << 5);
+    }
+
+
+
+    /*проверка на вхождение в MIN m27*/
+    comparison_parameter.relay_state = M27;
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27;
+    SetDacA();
+    if (comparison_parameter.set_level_status == ERROR)
+    {
+        result = (1 << 6);
     }
     SetDacB();
     if (comparison_parameter.set_level_status == ERROR)
     {
-        printf("unit_test out rangeSetDacB m12->pass");
+        result = (1 << 6);
     }
-    else
+
+    /*проверка на выход из MIN m27*/
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
+    SetDacA();
+    if (comparison_parameter.set_level_status != ERROR)
     {
-        printf("unit_test out rangeSetDacB m12->fail");
+        result = (1 << 7);
     }
-/*проверка на выход из MAX m12*/
+    SetDacB();
+    if (comparison_parameter.set_level_status != ERROR)
+    {
+        result = (1 << 7);
+    }
 
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
-SetDacA();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m12->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m12->fail");
-}
-SetDacB();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m12->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m12->fail");
-}
+    /*проверка на выход из MAX m27*/
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
+    SetDacA();
+    if (comparison_parameter.set_level_status != ERROR)
+    {
+        result = (1 << 8);
+    }
+    SetDacB();
+    if (comparison_parameter.set_level_status != ERROR)
+    {
+        result = (1 << 8);
+    }
 
-/*проверка на выход из норм m12*/
+    /*проверка на выход из норм m27 */
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27;
+    SetAllDAC();
+    if (comparison_parameter.set_level_status == ERROR)
+    {
+        result = (1 << 9);
+    }
 
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12;
-SetAllDAC();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m12->fail");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m12->pass");
-}
-/*проверка на выход из мин m12*/
+    /*проверка на выход из мин m27*/
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
+    SetAllDAC();
+    if (comparison_parameter.set_level_status == ERROR)
+    {
+        result = (1 << 10);
+    }
 
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
-SetAllDAC();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m12->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m12->fail");
-}
-/*проверка на выход из макс m12*/
+    /*проверка на выход из макс m27*/
+    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
+    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
+    SetAllDAC();
+    if (comparison_parameter.set_level_status == ERROR)
+    {
+        result = (1 << 11);
+    }
 
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
-SetAllDAC();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m12->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m12->fail");
+    /* Нужно сравнить таблицу загруженную во флеш и таблицу, которая должна быть там */
+    /*  */
+
+    return result;
 }
 
-
-
-/*проверка на вхождение в MIN m27*/
-comparison_parameter.relay_state = m27;
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27;
-SetDacA();
-if (comparison_parameter.set_level_status == ERROR)
+/*---------------------------------------------------------------------------*/
+inline void EnableTIM3(void)
 {
-  printf("unit test in range SetDacA m27->fail");
-}
-else
-{
-  printf("unit test in range SetDacA m27->pass");
+	calibration.is_tim_working = 1;
 }
 
-SetDacB();
-if (comparison_parameter.set_level_status == ERROR)
+inline uint16_t GetTIM3(void)
 {
-  printf("unit test in range SetDacB m27->fail");
-}
-else
-{
-  printf("unit_test in range SetDacB m27->pass");
-}
-/*проверка на выход из MIN m12*/
-
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
-SetDacA();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m27->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m27->fail");
-}
-SetDacB();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m27->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m27->fail");
-}
-/*проверка на выход из MAX m12*/
-
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
-SetDacA();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m27->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m27->fail");
-}
-SetDacB();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m27->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m27->fail");
+	return calibration.g_tim3;
 }
 
-/*проверка на выход из норм */
-
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27;
-SetAllDAC();
-if (comparison_parameter.set_level_status == ERROR)
+inline void resValTIM3(void)
 {
-  printf("unit_test out rangeSetDacB m27->fail");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m27->pass");
-}
-/*проверка на выход из мин m12*/
-comparison_parameter.relay_state = m12;
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
-SetAllDAC();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m27->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m27->fail");
-}
-/*проверка на выход из макс m12*/
-comparison_parameter.relay_state = m12;
-comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
-comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
-SetAllDAC();
-if (comparison_parameter.set_level_status == ERROR)
-{
-  printf("unit_test out rangeSetDacB m27->pass");
-}
-else
-{
-  printf("unit_test out rangeSetDacB m27->fail");
-}
+    calibration.g_tim4 = 0;
 }
 
-inline uint16_t GetDacA()
+/*---------------------------------------------------------------------------*/
+inline void EnableTIM4(void)
 {
-	return VDAC_A;
+	calibration.is_tim_working = 0;
 }
 
-inline uint16_t GetDacB()
+inline uint16_t GetTIM4(void)
 {
-	return VDAC_B;
+	return calibration.g_tim4;
 }
 
-//**************************************************************************
-#if TEST_TIM_CAPTURE
-volatile uint8_t timWork = 0;
-volatile uint8_t count_overflowTIM3 = 0;
-volatile uint8_t count_overflowTIM4 = 0;
+inline void resValTIM4(void)
+{
+	calibration.g_tim4 = 0;
+}
 
-volatile uint16_t g_vTIM3_PB4 = 0;
-volatile uint16_t g_vTIM4_PB6 = 0;
-
-void EnableTIM3_PB4(void)
-{
-	timWork = 1;
-}
-uint16_t GetTIM3(void)
-{
-	return g_vTIM3_PB4;
-}
-void resValTIM3_PB4(void)
-{
-	g_vTIM3_PB4 = 0;
-}
-//--------------------------------------------------------------------------
-void EnableTIM4_PB6()
-{
-	timWork = 0;
-}
-uint16_t GetTIM4()
-{
-	return g_vTIM4_PB6;
-}
-void resValTIM4_PB6()
-{
-	g_vTIM4_PB6 = 0;
-}
-//--------------------------------------------------------------------------
+/*---------------------------------------------------------------------------*/
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	uint16_t periodTIM3, pulseWidthTIM3, periodTIM4, pulseWidthTIM4;
 
-	if (timWork)
+	if (calibration.is_tim_working == 1)
 	{
 		if (htim->Instance == TIM3)
 		{
 			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
 			{
-				periodTIM3 = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_1);
-				pulseWidthTIM3 = HAL_TIM_ReadCapturedValue(&htim3,
-														   TIM_CHANNEL_2);
+				periodTIM3      = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_1);
+				pulseWidthTIM3  = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_2);
 
 				TIM3->CNT = 0;
 
-				int16_t deltaTIM3 = (int16_t)periodTIM3 - (int16_t)pulseWidthTIM3;
-				deltaTIM3 = (deltaTIM3 < 0) ? (-1 * deltaTIM3) : deltaTIM3;
-				g_vTIM3_PB4 = deltaTIM3;
+				int16_t deltaTIM3   = (int16_t)periodTIM3 - (int16_t)pulseWidthTIM3;
+				deltaTIM3           = (deltaTIM3 < 0) ? (-1 * deltaTIM3) : deltaTIM3;
+				calibration.g_tim3  = deltaTIM3;
 			}
 		}
 	}
@@ -527,47 +441,38 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 		{
 			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
 			{
-				periodTIM4 = HAL_TIM_ReadCapturedValue(&htim4, TIM_CHANNEL_1);
-				pulseWidthTIM4 = HAL_TIM_ReadCapturedValue(&htim4,
-														   TIM_CHANNEL_2);
+				periodTIM4      = HAL_TIM_ReadCapturedValue(&htim4, TIM_CHANNEL_1);
+				pulseWidthTIM4  = HAL_TIM_ReadCapturedValue(&htim4, TIM_CHANNEL_2);
 
 				TIM4->CNT = 0;
 
-				int16_t deltaTIM4 = (int16_t)periodTIM4 - (int16_t)pulseWidthTIM4;
-				deltaTIM4 = (deltaTIM4 < 0) ? (-1 * deltaTIM4) : deltaTIM4;
-				g_vTIM4_PB6 = deltaTIM4;
+				int16_t deltaTIM4   = (int16_t)periodTIM4 - (int16_t)pulseWidthTIM4;
+				deltaTIM4           = (deltaTIM4 < 0) ? (-1 * deltaTIM4) : deltaTIM4;
+				calibration.g_tim4  = deltaTIM4;
 			}
 		}
 	}
 }
-
-#endif /* TEST_TIM_CAPTURE */
-//**************************************************************************
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#if TEST_ADC
-volatile uint16_t g_VADC = 0;
+volatile uint16_t volt_ADC = 0;
 
-uint16_t GetADC()
+inline uint16_t GetADC(void)
 {
-	return g_VADC;
+	return volt_ADC;
 }
-//--------------------------------------------------------------------------
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-	if (hadc->Instance == ADC1) //check if the interrupt comes from ACD1
-	{
-		g_VADC = HAL_ADC_GetValue(&hadc1); // глобальная переменна g_VADC вычитывается
+    /* Check if the interrupt comes from ACD1 */
+	if (hadc->Instance == ADC1) {
+		volt_ADC = HAL_ADC_GetValue(&hadc1);
 	}
 }
-#endif /* TEST_ADC */
-
-bool relay_state = M12; // TODO: проверить первое состояние --> первоначальное состояние реле 27V
-                        // FIXME: Нужно изменить на m12 и подправить у Йоноса!
 
 /* USER CODE END 0 */
 
@@ -579,9 +484,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-//	writeTableInFlash();
-
-
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -590,11 +492,6 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
-/*---------------------------------------------------------------------------*/
-#if DWT_INIT
-	DWT_Init();
-#endif /* DWT_INIT */
 
   /* USER CODE END Init */
 
@@ -615,31 +512,19 @@ int main(void)
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
 
-/*---------------------------------------------------------------------------*/
-
-#if TEST_TIM_CAPTURE
   HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
   HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
   HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
   HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
-#endif /* TEST_TIM_CAPTURE */
 
-/*---------------------------------------------------------------------------*/
-
-#if TEST_DAC
   SetAllDAC();
-#endif /* TEST_DAC */
 
-/*---------------------------------------------------------------------------*/
-
-#if TEST_ADC
   HAL_ADCEx_Calibration_Start(&hadc1);
   HAL_ADC_Start_IT(&hadc1);
-#endif /* TEST_ADC */
-
-/*---------------------------------------------------------------------------*/
 
   calib_table_init( &DevNVRAM.calibration_table );
+
+  unit_test();
 
   /* USER CODE END 2 */
 

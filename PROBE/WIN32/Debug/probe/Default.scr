@@ -1,0 +1,138 @@
+--functions
+function set_default()
+    set_voltage(3, 0);
+    set_current(3, 0.02);
+    enable(3);
+
+    set_amplitude(0,1);
+    set_offset(0,0);
+    mgqs_enable(0);
+
+end;
+-----------------------------------------------
+
+function step_by_step(channel,first_code, stp)
+    
+    local code = first_code;
+    local inverted_channel = channel;
+    if channel == 0 then inverted_channel = 1 else inverted_channel = 0 end;
+
+    set_code(channel, first_code);
+    sleep(300);
+    local tmp = time(inverted_channel);
+--console(tmp)
+    while tmp < 500 do
+        code1 = code + stp;
+        set_code(channel, code1);
+        sleep(300);
+        local tmp1 = time(inverted_channel);
+        
+        if tmp1 > 500  then
+            break;
+        else
+            code = code1;
+            tmp  = tmp1;
+        end;
+        if code >= 4096 then return 
+first_code; end; 
+        console(''..code..' >> '..tmp);
+    end
+    return code;
+end
+
+-----------------------------------------------
+----
+function evaluate(channel, mode,first_code, v_from, v_to, v_step, koeff)
+
+    if mode == 12 then mode_12() else 
+mode_27() end;
+
+    for v = v_from, v_to, v_step do
+
+        if v > 0 then set_voltage(3, v) else 
+set_voltage(3, -v) end;
+
+        code = step_by_step(channel,first_code,50);
+        code = step_by_step(channel,code,25);
+        code = step_by_step(channel,code,5);
+        code = step_by_step(channel,code,1);
+
+        if mode == 12 then 
+                add_12v(channel, v/koeff, code)
+        else 
+                add_27v(channel,v/koeff,code) 
+        end;
+
+       console(''..code..'>>'..tostring(v)..'В');
+ 
+    end
+
+end
+--end_functions
+local from = 0;
+local to     = 12;
+local step  = 1;
+local k      = 1.04;
+local LOW_COMPARATOR = 0;
+local HI_COMPARATOR     = 1;
+local MODE_12 = 12;
+local MODE_27 = 27;
+
+
+set_default(); -- устанавливаются параметры ИП
+initialize();     -- инициализируется калибровочная таблица
+
+-- {0..12В} Канал А(нижний компаратор)
+
+from = 0;
+to     = 12;
+evaluate(LOW_COMPARATOR, MODE_12, 2000, from, to, step,k);
+save();
+-- {0..12В} Канал B(верхний компаратор)
+
+from = 0;
+to     = 12;
+evaluate(HI_COMPARATOR, MODE_12, 2000, from, to, step,k);
+
+save();
+-- {0..27В} Канал А(нижний компаратор)
+
+from = 0;
+to     = 27;
+evaluate(LOW_COMPARATOR, MODE_27, 2000, from, to, step,k);
+save();
+-- {0..27В} Канал B(верхний компаратор)
+
+from = 0;
+to     = 27;
+evaluate(HI_COMPARATOR, MODE_27, 2000, from, to, step,k);
+save();
+message('Измените полярность ИП!');
+--======================================
+from = -5;
+to     = 0;
+
+
+
+-- {-5..0В} Канал А(нижний компаратор)
+
+evaluate(LOW_COMPARATOR, MODE_12, 200, from, to, step,k);
+
+-- {-5..0В} Канал B(верхний компаратор)
+
+evaluate(HI_COMPARATOR, MODE_12, 200, from, to, step,k);
+
+
+-- {-5..0В} Канал А(нижний компаратор)
+
+evaluate(LOW_COMPARATOR, MODE_27, 200, from, to, step,k);
+
+-- {-5..0В} Канал B(верхний компаратор)
+
+evaluate(HI_COMPARATOR, MODE_27, 200, from, to, step,k);
+
+save();
+
+
+
+

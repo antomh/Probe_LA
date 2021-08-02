@@ -16,8 +16,7 @@ C_SRCS += \
 ../Core/Src/syscalls.c \
 ../Core/Src/sysmem.c \
 ../Core/Src/system_stm32f1xx.c \
-../Core/Src/usb_handler.c \
-../Core/Src/utils.c 
+../Core/Src/usb_handler.c 
 
 OBJS += \
 ./Core/Src/DAC_AD5322.o \
@@ -31,8 +30,7 @@ OBJS += \
 ./Core/Src/syscalls.o \
 ./Core/Src/sysmem.o \
 ./Core/Src/system_stm32f1xx.o \
-./Core/Src/usb_handler.o \
-./Core/Src/utils.o 
+./Core/Src/usb_handler.o 
 
 C_DEPS += \
 ./Core/Src/DAC_AD5322.d \
@@ -46,8 +44,7 @@ C_DEPS += \
 ./Core/Src/syscalls.d \
 ./Core/Src/sysmem.d \
 ./Core/Src/system_stm32f1xx.d \
-./Core/Src/usb_handler.d \
-./Core/Src/utils.d 
+./Core/Src/usb_handler.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes

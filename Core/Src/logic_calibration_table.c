@@ -104,253 +104,258 @@ void calib_table_init(Table_t *ct)
 /*---------------------------------------------------------------------------*/
 
 /*
- * @brief   Convert some voltage to ... do it later.
+ * @brief   Convert some voltage to numeric value
  * */
 uint16_t volt2dgt(Table_t *ct, struct comparison_parameters *cp, enum DacChannel ch)
 {
-//    struct data_volt2dgt dConv = {
-//            .count  = 0,
-//            .yi     = 0,
-//            .y      = 0,
-//            .Ca0    = 0,
-//            .Ca1    = 0,
-//            .a0     = 0,
-//            .a1     = 0,
-//            .CodeX  = 0
-//    };
-//
-//    switch (cp->relay_state)
-//    {
-//        case M12 :
-//
-//            if (ch == CH_A) {
-//                /*Канал А*/
-//                /* по значениям МАX и MIN и Шага калибровки вычисляем индекс соотвестующего значению таблицы равного или меньше VOLT  */
-//                dConv.yi = floor(
-//                        ((float) ((float) (((abs(ct->volt_min_mode_12)
-//                                + abs(ct->volt_max_mode_12))
-//                                / ct->calibration_step)
-//                                * abs(ct->volt_min_mode_12))
-//                                / (float) (abs(ct->volt_min_mode_12)
-//                                        + abs(ct->volt_max_mode_12)))
-//                                / (float) (abs(ct->volt_min_mode_12)))
-//                                * cp->VDAC_A
-//                                + ((float) (((abs(ct->volt_min_mode_12)
-//                                        + abs(ct->volt_max_mode_12))
-//                                        / ct->calibration_step)
-//                                        * abs(ct->volt_min_mode_12))
-//                                        / (float) (abs(ct->volt_min_mode_12)
-//                                                + abs(ct->volt_max_mode_12))));
-//            /* Значение цап для первой точки */
-//            /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  вхождения в область таблицы*/
-//            if (dConv.yi <= MAX_VAL_M12) /* Проверка что индекс был в области памями таблицы */
-//            {
-//                dConv.Ca0 = (uint16_t*) ct->dacValA_m12[dConv.yi];
-//                /* Значение цап для второй точки  */
-//                /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
-//                dConv.Ca1 = ct->dacValA_m12[dConv.yi + 1];
-//                /* Значение цап для второй точки  */
-//                dConv.y = ((float) ((float) (((abs(ct->volt_min_mode_12)
-//                        + abs(ct->volt_max_mode_12)) / ct->calibration_step)
-//                        * abs(ct->volt_min_mode_12))
-//                        / (float) (abs(ct->volt_min_mode_12)
-//                        + abs(ct->volt_max_mode_12)))
-//                        / (float) (abs(ct->volt_min_mode_12)))
-//                        * cp->VDAC_A
-//                        + ((float) (((abs(ct->volt_min_mode_12)
-//                        + abs(ct->volt_max_mode_12))
-//                        / ct->calibration_step)
-//                        * abs(ct->volt_min_mode_12))
-//                        / (float) (abs(ct->volt_min_mode_12)
-//                        + abs(ct->volt_max_mode_12)));
-//
-//                dConv.a0 = (dConv.yi * ct->calibration_step)
-//                        - abs(ct->volt_min_mode_12);
-//                dConv.a1 = ((dConv.yi + 1) * ct->calibration_step)
-//                        - abs(ct->volt_min_mode_12);
-//                dConv.CodeX = ((((float) (dConv.Ca1 - dConv.Ca0))
-//                        / ((float) dConv.a1 - dConv.a0)))
-//                        * (cp->VDAC_A - dConv.a0) + dConv.Ca0;
-//
-//                cp->status = SUCCESS;
-//
-//                return dConv.CodeX; //2400v -> 2662dgt
-//            } else {
-//                /*Возвращаем статус -> вышли за область памяти таблицы */
-//                return cp->status = ERROR;
-//                break;
-//            }
-//        } else {
-//            /*Канал B*/
-//            /* по значениям МАX и MIN и Шага калибровки вычисляем индекс соотвестующего значению таблицы равного или меньше VOLT  */
-//            dConv.yi = floor(
-//                    ((float) ((float) (((abs(ct->volt_min_mode_12)
-//                            + abs(ct->volt_max_mode_12)) / ct->calibration_step)
-//                            * abs(ct->volt_min_mode_12))
-//                            / (float) (abs(ct->volt_min_mode_12)
-//                                    + abs(ct->volt_max_mode_12)))
-//                            / (float) (abs(ct->volt_min_mode_12)))
-//                            * cp->VDAC_B
-//                            + ((float) (((abs(ct->volt_min_mode_12)
-//                                    + abs(ct->volt_max_mode_12))
-//                                    / ct->calibration_step)
-//                                    * abs(ct->volt_min_mode_12))
-//                                    / (float) (abs(ct->volt_min_mode_12)
-//                                            + abs(ct->volt_max_mode_12))));
-//            /* Значение цап для первой точки  */
-//            /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
-//            if (dConv.yi <= MAX_VAL_M12) /* Проверка что индекс был в области памями таблицы */
-//            {
-//                dConv.Ca0 = (uint16_t*) ct->dacValA_m12[dConv.yi];
-//                /* Значение цап для второй точки  */
-//                /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
-//                dConv.Ca1 = ct->dacValA_m12[dConv.yi + 1];
-//                /* Значение цап для второй точки  */
-//                dConv.y = ((float) ((float) (((abs(ct->volt_min_mode_12)
-//                        + abs(ct->volt_max_mode_12)) / ct->calibration_step)
-//                        * abs(ct->volt_min_mode_12))
-//                        / (float) (abs(ct->volt_min_mode_12)
-//                                + abs(ct->volt_max_mode_12)))
-//                        / (float) (abs(ct->volt_min_mode_12)))
-//                        * cp->VDAC_B
-//                        + ((float) (((abs(ct->volt_min_mode_12)
-//                                + abs(ct->volt_max_mode_12))
-//                                / ct->calibration_step)
-//                                * abs(ct->volt_min_mode_12))
-//                                / (float) (abs(ct->volt_min_mode_12)
-//                                        + abs(ct->volt_max_mode_12)));
-//
-//                dConv.a0 = (dConv.yi * ct->calibration_step)
-//                        - abs(ct->volt_min_mode_12);
-//                dConv.a1 = ((dConv.yi + 1) * ct->calibration_step)
-//                        - abs(ct->volt_min_mode_12);
-//                dConv.CodeX = ((((float) (dConv.Ca1 - dConv.Ca0))
-//                        / ((float) dConv.a1 - dConv.a0)))
-//                        * (cp->VDAC_B - dConv.a0) + dConv.Ca0;
-//
-//                cp->status = SUCCESS;
-//
-//                return dConv.CodeX; //2400 -> 2662
-//            } else {
-//                /*Возвращаем статус -> вышли за область памяти таблицы */
-//                return cp->status = ERROR;
-//                break;
-//            }
-//        }
-//        break;
-//
-//    case m27:
-//        if (ch == ChA) {
-//            /*Канал А*/
-//            /* по значениям МАX и MIN и Шага калибровки вычисляем индекс соотвестующего значению таблицы равного или меньше VOLT  */
-//            dConv.yi = floor(
-//                    ((float) ((float) (((abs(ct->volt_min_mode_27)
-//                            + abs(ct->volt_max_mode_27)) / ct->calibration_step)
-//                            * abs(ct->volt_min_mode_27))
-//                            / (float) (abs(ct->volt_min_mode_27)
-//                                    + abs(ct->volt_max_mode_27)))
-//                            / (float) (abs(ct->volt_min_mode_27)))
-//                            * cp->VDAC_A
-//                            + ((float) (((abs(ct->volt_min_mode_27)
-//                                    + abs(ct->volt_max_mode_27))
-//                                    / ct->calibration_step)
-//                                    * abs(ct->volt_min_mode_27))
-//                                    / (float) (abs(ct->volt_min_mode_27)
-//                                            + abs(ct->volt_max_mode_27))));
-//            /* Значение цап для первой точки  */
-//            /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
-//            if (dConv.yi <= MAX_VAL_M27) /* Проверка что индекс был в области памями таблицы */
-//            {
-//                dConv.Ca0 = (uint16_t*) ct->dacValA_m27[dConv.yi];
-//                /* Значение цап для второй точки  */
-//                /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
-//                dConv.Ca1 = ct->dacValA_m27[dConv.yi + 1];
-//                /* Значение цап для второй точки  */
-//                dConv.y = ((float) ((float) (((abs(ct->volt_min_mode_27)
-//                        + abs(ct->volt_max_mode_27)) / ct->calibration_step)
-//                        * abs(ct->volt_min_mode_27))
-//                        / (float) (abs(ct->volt_min_mode_27)
-//                                + abs(ct->volt_max_mode_27)))
-//                        / (float) (abs(ct->volt_min_mode_27)))
-//                        * cp->VDAC_A
-//                        + ((float) (((abs(ct->volt_min_mode_27)
-//                                + abs(ct->volt_max_mode_27))
-//                                / ct->calibration_step)
-//                                * abs(ct->volt_min_mode_27))
-//                                / (float) (abs(ct->volt_min_mode_27)
-//                                        + abs(ct->volt_max_mode_27)));
-//
-//                dConv.a0 = (dConv.yi * ct->calibration_step)
-//                        - abs(ct->volt_min_mode_27);
-//                dConv.a1 = ((dConv.yi + 1) * ct->calibration_step)
-//                        - abs(ct->volt_min_mode_27);
-//                dConv.CodeX = ((((float) (dConv.Ca1 - dConv.Ca0))
-//                        / ((float) dConv.a1 - dConv.a0)))
-//                        * (cp->VDAC_A - dConv.a0) + dConv.Ca0;
-//                cp->status = SUCCESS;
-//                return dConv.CodeX; //2400 -> 2662
-//                break;
-//            } else {
-//                /*Возвращаем статус -> вышли за область памяти таблицы */
-//                return cp->status = ERROR;
-//                break;
-//            }
-//        } else {
-//            /*Канал B*/
-//            /* по значениям МАX и MIN и Шага калибровки вычисляем индекс соотвестующего значению таблицы равного или меньше VOLT  */
-//            dConv.yi = floor(
-//                    ((float) ((float) (((abs(ct->volt_min_mode_27)
-//                            + abs(ct->volt_max_mode_27)) / ct->calibration_step)
-//                            * abs(ct->volt_min_mode_27))
-//                            / (float) (abs(ct->volt_min_mode_27)
-//                                    + abs(ct->volt_max_mode_27)))
-//                            / (float) (abs(ct->volt_min_mode_27)))
-//                            * cp->VDAC_B
-//                            + ((float) (((abs(ct->volt_min_mode_27)
-//                                    + abs(ct->volt_max_mode_27))
-//                                    / ct->calibration_step)
-//                                    * abs(ct->volt_min_mode_27))
-//                                    / (float) (abs(ct->volt_min_mode_27)
-//                                            + abs(ct->volt_max_mode_27))));
-//            /* Значение цап для первой точки  */
-//            /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
-//            if (dConv.yi <= MAX_VAL_M27) /* Проверка что индекс был в области памями таблицы */
-//            {
-//                dConv.Ca0 = (uint16_t*) ct->dacValA_m27[dConv.yi];
-//                /* Значение цап для второй точки  */
-//                /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
-//                dConv.Ca1 = ct->dacValA_m27[dConv.yi + 1];
-//                /* Значение цап для второй точки  */
-//                dConv.y = ((float) ((float) (((abs(ct->volt_min_mode_27)
-//                        + abs(ct->volt_max_mode_27)) / ct->calibration_step)
-//                        * abs(ct->volt_min_mode_27))
-//                        / (float) (abs(ct->volt_min_mode_27)
-//                                + abs(ct->volt_max_mode_27)))
-//                        / (float) (abs(ct->volt_min_mode_27)))
-//                        * cp->VDAC_B
-//                        + ((float) (((abs(ct->volt_min_mode_27)
-//                                + abs(ct->volt_max_mode_27))
-//                                / ct->calibration_step)
-//                                * abs(ct->volt_min_mode_27))
-//                                / (float) (abs(ct->volt_min_mode_27)
-//                                        + abs(ct->volt_max_mode_27)));
-//
-//                dConv.a0 = (dConv.yi * ct->calibration_step)
-//                        - abs(ct->volt_min_mode_27);
-//                dConv.a1 = ((dConv.yi + 1) * ct->calibration_step)
-//                        - abs(ct->volt_min_mode_12);
-//                dConv.CodeX = ((((float) (dConv.Ca1 - dConv.Ca0))
-//                        / ((float) dConv.a1 - dConv.a0)))
-//                        * (cp->VDAC_B - dConv.a0) + dConv.Ca0;
-//                cp->status = SUCCESS;
-//                return dConv.CodeX; //2400 -> 2662
-//                break;
-//            } else {
-//                /*Возвращаем статус -> вышли за область памяти таблицы */
-//                return cp->status = ERROR;
-//                break;
-//            }
-//        }
-//    }
+    struct data_volt2dgt dConv = {
+            .count  = 0,
+            .yi     = 0,
+            .y      = 0,
+            .Ca0    = 0,
+            .Ca1    = 0,
+            .a0     = 0,
+            .a1     = 0,
+            .CodeX  = 0
+    };
+
+    switch (cp->relay_state)
+    {
+        case M12 :
+        {
+            if (ch == CH_A) {
+                /*Канал А*/
+                /* по значениям МАX и MIN и Шага калибровки вычисляем индекс соотвестующего значению таблицы равного или меньше VOLT  */
+                dConv.yi = floor(
+                        ((float) ((float) (((abs(ct->volt_min_mode_12)
+                        + abs(ct->volt_max_mode_12)) / ct->calibration_step)
+                        * abs(ct->volt_min_mode_12))
+                        / (float) (abs(ct->volt_min_mode_12)
+                        + abs(ct->volt_max_mode_12)))
+                        / (float) (abs(ct->volt_min_mode_12)))
+                        * cp->dac_A_volt
+                        + ((float) (((abs(ct->volt_min_mode_12)
+                        + abs(ct->volt_max_mode_12))
+                        / ct->calibration_step)
+                        * abs(ct->volt_min_mode_12))
+                        / (float) (abs(ct->volt_min_mode_12)
+                        + abs(ct->volt_max_mode_12))));
+                /* Значение цап для первой точки */
+                /* Потенциальное место ошибки!  обращаемся к индексу который вычислили, добавить проверку вхождения в область таблицы */
+                if (dConv.yi <= MAX_VAL_M12) /* Проверка что индекс был в области памями таблицы */
+                {
+                    dConv.Ca0 = ct->dacValA_m12[dConv.yi];
+                    /* Значение цап для второй точки  */
+                    /* Потенциальное место ошибки!  обращаемся к индексу который вычислили, добавить проверку выхождения за область таблицы */
+                    dConv.Ca1 = ct->dacValA_m12[dConv.yi + 1];
+                    /* Значение цап для второй точки  */
+                    dConv.y = ((float) ((float) (((abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12)) / ct->calibration_step)
+                            * abs(ct->volt_min_mode_12))
+                            / (float) (abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12)))
+                            / (float) (abs(ct->volt_min_mode_12)))
+                            * cp->dac_A_volt
+                            + ((float) (((abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12))
+                            / ct->calibration_step)
+                            * abs(ct->volt_min_mode_12))
+                            / (float) (abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12)));
+
+                    dConv.a0 = (dConv.yi * ct->calibration_step)
+                            - abs(ct->volt_min_mode_12);
+                    dConv.a1 = ((dConv.yi + 1) * ct->calibration_step)
+                            - abs(ct->volt_min_mode_12);
+                    dConv.CodeX = ((((float) (dConv.Ca1 - dConv.Ca0))
+                            / ((float) dConv.a1 - dConv.a0)))
+                            * (cp->dac_A_volt - dConv.a0) + dConv.Ca0;
+
+                    cp->set_level_status = SUCCESS;
+
+                    return dConv.CodeX; //2400v -> 2662dgt
+                } else {
+                    /*Возвращаем статус -> вышли за область памяти таблицы */
+                    return cp->set_level_status = ERROR;
+                    break;
+                }
+            }
+            else if (ch == CH_B) {
+                /*Канал B*/
+                /* по значениям МАX и MIN и Шага калибровки вычисляем индекс соотвестующего значению таблицы равного или меньше VOLT  */
+                dConv.yi = floor(
+                            ((float) ((float) (((abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12)) / ct->calibration_step)
+                            * abs(ct->volt_min_mode_12))
+                            / (float) (abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12)))
+                            / (float) (abs(ct->volt_min_mode_12)))
+                            * cp->dac_B_volt
+                            + ((float) (((abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12))
+                            / ct->calibration_step)
+                            * abs(ct->volt_min_mode_12))
+                            / (float) (abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12))));
+                /* Значение цап для первой точки  */
+                /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
+                if (dConv.yi <= MAX_VAL_M12) /* Проверка что индекс был в области памями таблицы */
+                {
+                    dConv.Ca0 = ct->dacValA_m12[dConv.yi];
+                    /* Значение цап для второй точки  */
+                    /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
+                    dConv.Ca1 = ct->dacValA_m12[dConv.yi + 1];
+                    /* Значение цап для второй точки  */
+                    dConv.y = ((float) ((float) (((abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12)) / ct->calibration_step)
+                            * abs(ct->volt_min_mode_12))
+                            / (float) (abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12)))
+                            / (float) (abs(ct->volt_min_mode_12)))
+                            * cp->dac_B_volt
+                            + ((float) (((abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12))
+                            / ct->calibration_step)
+                            * abs(ct->volt_min_mode_12))
+                            / (float) (abs(ct->volt_min_mode_12)
+                            + abs(ct->volt_max_mode_12)));
+
+                    dConv.a0 = (dConv.yi * ct->calibration_step)
+                            - abs(ct->volt_min_mode_12);
+                    dConv.a1 = ((dConv.yi + 1) * ct->calibration_step)
+                            - abs(ct->volt_min_mode_12);
+                    dConv.CodeX = ((((float) (dConv.Ca1 - dConv.Ca0))
+                            / ((float) dConv.a1 - dConv.a0)))
+                            * (cp->dac_B_volt - dConv.a0) + dConv.Ca0;
+
+                    cp->set_level_status = SUCCESS;
+
+                    return dConv.CodeX; //2400 -> 2662
+                } else {
+                    /*Возвращаем статус -> вышли за область памяти таблицы */
+                    return cp->set_level_status = ERROR;
+                    break;
+                }
+            }
+            break;
+        }
+
+        case M27 :
+        {
+            if (ch == CH_A) {
+                /*Канал А*/
+                /* по значениям МАX и MIN и Шага калибровки вычисляем индекс соотвестующего значению таблицы равного или меньше VOLT  */
+                dConv.yi = floor(
+                        ((float) ((float) (((abs(ct->volt_min_mode_27)
+                        + abs(ct->volt_max_mode_27)) / ct->calibration_step)
+                        * abs(ct->volt_min_mode_27))
+                        / (float) (abs(ct->volt_min_mode_27)
+                        + abs(ct->volt_max_mode_27)))
+                        / (float) (abs(ct->volt_min_mode_27)))
+                        * cp->dac_A_volt
+                        + ((float) (((abs(ct->volt_min_mode_27)
+                        + abs(ct->volt_max_mode_27))
+                        / ct->calibration_step)
+                        * abs(ct->volt_min_mode_27))
+                        / (float) (abs(ct->volt_min_mode_27)
+                        + abs(ct->volt_max_mode_27))));
+                /* Значение цап для первой точки  */
+                /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
+                if (dConv.yi <= MAX_VAL_M27) /* Проверка что индекс был в области памями таблицы */
+                {
+                    dConv.Ca0 = ct->dacValA_m27[dConv.yi];
+                    /* Значение цап для второй точки  */
+                    /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
+                    dConv.Ca1 = ct->dacValA_m27[dConv.yi + 1];
+                    /* Значение цап для второй точки  */
+                    dConv.y = ((float) ((float) (((abs(ct->volt_min_mode_27)
+                            + abs(ct->volt_max_mode_27)) / ct->calibration_step)
+                            * abs(ct->volt_min_mode_27))
+                            / (float) (abs(ct->volt_min_mode_27)
+                            + abs(ct->volt_max_mode_27)))
+                            / (float) (abs(ct->volt_min_mode_27)))
+                            * cp->dac_A_volt
+                            + ((float) (((abs(ct->volt_min_mode_27)
+                            + abs(ct->volt_max_mode_27))
+                            / ct->calibration_step)
+                            * abs(ct->volt_min_mode_27))
+                            / (float) (abs(ct->volt_min_mode_27)
+                            + abs(ct->volt_max_mode_27)));
+
+                    dConv.a0 = (dConv.yi * ct->calibration_step)
+                            - abs(ct->volt_min_mode_27);
+                    dConv.a1 = ((dConv.yi + 1) * ct->calibration_step)
+                            - abs(ct->volt_min_mode_27);
+                    dConv.CodeX = ((((float) (dConv.Ca1 - dConv.Ca0))
+                            / ((float) dConv.a1 - dConv.a0)))
+                            * (cp->dac_A_volt - dConv.a0) + dConv.Ca0;
+                    cp->set_level_status = SUCCESS;
+                    return dConv.CodeX; //2400 -> 2662
+                    break;
+                } else {
+                    /*Возвращаем статус -> вышли за область памяти таблицы */
+                    return cp->set_level_status = ERROR;
+                    break;
+                }
+            }
+            else if (ch == CH_B) {
+                /*Канал B*/
+                /* по значениям МАX и MIN и Шага калибровки вычисляем индекс соотвестующего значению таблицы равного или меньше VOLT  */
+                dConv.yi = floor(
+                        ((float) ((float) (((abs(ct->volt_min_mode_27)
+                        + abs(ct->volt_max_mode_27)) / ct->calibration_step)
+                        * abs(ct->volt_min_mode_27))
+                        / (float) (abs(ct->volt_min_mode_27)
+                        + abs(ct->volt_max_mode_27)))
+                        / (float) (abs(ct->volt_min_mode_27)))
+                        * cp->dac_B_volt
+                        + ((float) (((abs(ct->volt_min_mode_27)
+                        + abs(ct->volt_max_mode_27))
+                        / ct->calibration_step)
+                        * abs(ct->volt_min_mode_27))
+                        / (float) (abs(ct->volt_min_mode_27)
+                        + abs(ct->volt_max_mode_27))));
+                /* Значение цап для первой точки  */
+                /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
+                if (dConv.yi <= MAX_VAL_M27) /* Проверка что индекс был в области памями таблицы */
+                {
+                    dConv.Ca0 = ct->dacValA_m27[dConv.yi];
+                    /* Значение цап для второй точки  */
+                    /* Потенциальное место ошибки!  обращаемся к индексу который вычеслили, добавить проверку  выхождения за область таблицы*/
+                    dConv.Ca1 = ct->dacValA_m27[dConv.yi + 1];
+                    /* Значение цап для второй точки  */
+                    dConv.y = ((float) ((float) (((abs(ct->volt_min_mode_27)
+                            + abs(ct->volt_max_mode_27)) / ct->calibration_step)
+                            * abs(ct->volt_min_mode_27))
+                            / (float) (abs(ct->volt_min_mode_27)
+                            + abs(ct->volt_max_mode_27)))
+                            / (float) (abs(ct->volt_min_mode_27)))
+                            * cp->dac_B_volt
+                            + ((float) (((abs(ct->volt_min_mode_27)
+                            + abs(ct->volt_max_mode_27))
+                            / ct->calibration_step)
+                            * abs(ct->volt_min_mode_27))
+                            / (float) (abs(ct->volt_min_mode_27)
+                            + abs(ct->volt_max_mode_27)));
+
+                    dConv.a0 = (dConv.yi * ct->calibration_step)
+                            - abs(ct->volt_min_mode_27);
+                    dConv.a1 = ((dConv.yi + 1) * ct->calibration_step)
+                            - abs(ct->volt_min_mode_12);
+                    dConv.CodeX = ((((float) (dConv.Ca1 - dConv.Ca0))
+                            / ((float) dConv.a1 - dConv.a0)))
+                            * (cp->dac_B_volt - dConv.a0) + dConv.Ca0;
+                    cp->set_level_status = SUCCESS;
+                    return dConv.CodeX; //2400 -> 2662
+                    break;
+                }
+                else {
+                    /*Возвращаем статус -> вышли за область памяти таблицы */
+                    return cp->set_level_status = ERROR;
+                    break;
+                }
+            }
+        }
+    }
     return 0;
 }

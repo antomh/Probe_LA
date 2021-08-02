@@ -70,6 +70,8 @@ HAL_StatusTypeDef   usb_rx_handler(usb_rx_data_type *usb);
             u16 Buf[count] = data[n-1]  u8
                 Buf[count] = data[n]    u8
 
+    0x0C - Установка полярности источника питания   data: []
+
     0х0D - Запись во флеш калибровочной таблицы     data: [0x0D]        answer: 0x0D + 1B status
     0x0E - Прием параметров калибровки:
                                                     data: 0x0E + 10B ([Шаг калибровки][Мин. V при 12 В][Макс. V при 12 В][Мин. V при 27 В][Макс. V при 27 В])
