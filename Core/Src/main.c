@@ -20,6 +20,8 @@
 #include "crc.h"
 #include "usb_handler.h"
 #include "btn.h"
+#include "usbd_cdc_if.h"
+#include "stm32f1xx_it.h"
 
 /*-STANDART C FILES----------------------------------------------------------*/
 #include "string.h"
@@ -361,7 +363,7 @@ uint32_t unit_test(void)
     comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
     comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
     SetAllDAC();
-    if (comparison_parameter.set_level_status == ERROR)
+    if (comparison_parameter.set_level_status != ERROR)
     {
         result = (1 << 10);
     }
@@ -370,7 +372,7 @@ uint32_t unit_test(void)
     comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
     comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
     SetAllDAC();
-    if (comparison_parameter.set_level_status == ERROR)
+    if (comparison_parameter.set_level_status != ERROR)
     {
         result = (1 << 11);
     }
@@ -511,6 +513,7 @@ int main(void)
   MX_TIM4_Init();
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
+  calib_table_init( &DevNVRAM.calibration_table );
 
   HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
   HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
@@ -522,9 +525,9 @@ int main(void)
   HAL_ADCEx_Calibration_Start(&hadc1);
   HAL_ADC_Start_IT(&hadc1);
 
-  calib_table_init( &DevNVRAM.calibration_table );
-
-  unit_test();
+//  if (unit_test() != 0) {
+//      HardFault_Handler();
+//  }
 
   /* USER CODE END 2 */
 
@@ -820,6 +823,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
+  USB_Reset();
+
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
 
@@ -857,9 +862,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-#if USB_RESET
-// После перегенерации в Кубе добавить USB_Reset(); в функцию MX_GPIO_Init(void) (после ...CLK_ENABLE(); )
-#endif /* USB_RESET */
 /* USER CODE END 4 */
 
 /**

@@ -140,11 +140,10 @@ static int8_t CDC_Receive_FS(uint8_t* pbuf, uint32_t *Len);
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_DECLARATION */
 
+/* Insert this before any USB usage */
 void USB_Reset(void)
 {
-
     /* GPIO Ports Clock Enable */
-    __HAL_RCC_GPIOD_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
 
     /* Reset USB DP (D+) */

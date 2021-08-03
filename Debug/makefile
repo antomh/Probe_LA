@@ -65,8 +65,8 @@ all: main-build
 main-build: Probe_LA.elf secondary-outputs
 
 # Tool invocations
-Probe_LA.elf: $(OBJS) $(USER_OBJS) D:\projects\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Probe_LA.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\projects\Probe_LA_v5_calibrate_table\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Probe_LA.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Probe_LA.elf: $(OBJS) $(USER_OBJS) D:\projects\Probe_LA\STM32F103C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Probe_LA.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\projects\Probe_LA\STM32F103C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Probe_LA.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
