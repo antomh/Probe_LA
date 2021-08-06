@@ -77,7 +77,7 @@ struct comparison_parameters {
 
 /* Переменные для калибровки */
 struct calibration_parameters {
-    uint8_t is_tim_working;
+    uint8_t is_tim3_working;
     uint8_t tim3_overflow_counter;
     uint8_t tim4_overflow_counter;
 

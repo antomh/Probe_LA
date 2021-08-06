@@ -1,8 +1,6 @@
 /* USER CODE BEGIN Header */
 /*
  * TODO: Протестировать обработку нажатия кнопок: длинное и одиночное нажатие ( в Callback )
- * TODO: Закончить перенос кода из проекта Саши
- * TODO: Протестировать команду приема параметров калибровки
  *
  * */
 /* USER CODE END Header */
@@ -104,7 +102,7 @@ struct comparison_parameters comparison_parameter = {
 
 /* Заполнение структуры для калибровки */
 struct calibration_parameters calibration = {
-        .is_tim_working         = 0,
+        .is_tim3_working        = 0,
         .tim3_overflow_counter  = 0,
         .tim4_overflow_counter  = 0,
         .g_tim3                 = 0,
@@ -365,7 +363,7 @@ uint32_t unit_test(void)
     SetAllDAC();
     if (comparison_parameter.set_level_status != ERROR)
     {
-        result = (1 << 10);
+      result = (1 << 10);
     }
 
     /*проверка на выход из макс m27*/
@@ -374,7 +372,7 @@ uint32_t unit_test(void)
     SetAllDAC();
     if (comparison_parameter.set_level_status != ERROR)
     {
-        result = (1 << 11);
+      result = (1 << 11);
     }
 
     /* Нужно сравнить таблицу загруженную во флеш и таблицу, которая должна быть там */
@@ -386,7 +384,7 @@ uint32_t unit_test(void)
 /*---------------------------------------------------------------------------*/
 inline void EnableTIM3(void)
 {
-	calibration.is_tim_working = 1;
+	calibration.is_tim3_working = 1;
 }
 
 inline uint16_t GetTIM3(void)
@@ -402,7 +400,7 @@ inline void resValTIM3(void)
 /*---------------------------------------------------------------------------*/
 inline void EnableTIM4(void)
 {
-	calibration.is_tim_working = 0;
+	calibration.is_tim3_working = 0;
 }
 
 inline uint16_t GetTIM4(void)
@@ -418,39 +416,49 @@ inline void resValTIM4(void)
 /*---------------------------------------------------------------------------*/
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-	uint16_t periodTIM3, pulseWidthTIM3, periodTIM4, pulseWidthTIM4;
+  /* TEST CODE */
+  uint16_t tim3_ccr[3], tim4_ccr[3];
 
-	if (calibration.is_tim_working == 1)
-	{
-		if (htim->Instance == TIM3)
-		{
-			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
-			{
-				periodTIM3      = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_1);
-				pulseWidthTIM3  = HAL_TIM_ReadCapturedValue(&htim3, TIM_CHANNEL_2);
+	if (calibration.is_tim3_working == 1) {
+		if (htim->Instance == TIM3) {
+			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
+        tim3_ccr[1] = TIM3->CCR1;
+        tim3_ccr[2] = TIM3->CCR2;
+        int32_t tim3_delta = tim3_ccr[2] - tim3_ccr[1];
 
-				TIM3->CNT = 0;
+        if (tim3_delta < 0 && tim3_delta > -1000) {
+          calibration.g_tim3 = 1000 + tim3_delta;
+        } else if (tim3_delta >= 0 && tim3_delta < 1000) {
+          calibration.g_tim3 = tim3_delta;
+        } else {
+//          calibration.g_tim3 = 0xFFFFFFFF;
+        }
 
-				int16_t deltaTIM3   = (int16_t)periodTIM3 - (int16_t)pulseWidthTIM3;
-				deltaTIM3           = (deltaTIM3 < 0) ? (-1 * deltaTIM3) : deltaTIM3;
-				calibration.g_tim3  = deltaTIM3;
+        /* TEST */
+        if (calibration.g_tim3 > 500 || calibration.g_tim3 < 420) {
+          calibration.g_tim3++;
+        }
 			}
 		}
-	}
-	else
-	{
-		if (htim->Instance == TIM4)
-		{
-			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
-			{
-				periodTIM4      = HAL_TIM_ReadCapturedValue(&htim4, TIM_CHANNEL_1);
-				pulseWidthTIM4  = HAL_TIM_ReadCapturedValue(&htim4, TIM_CHANNEL_2);
+	} else {
+		if (htim->Instance == TIM4) {
+			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
+        tim4_ccr[1] = TIM4->CCR1;
+        tim4_ccr[2] = TIM4->CCR2;
+        int32_t tim4_delta = tim4_ccr[2] - tim4_ccr[1];
 
-				TIM4->CNT = 0;
+        if (tim4_delta < 0 && tim4_delta > -1000) {
+          calibration.g_tim4 = 1000 + tim4_delta;
+        } else if (tim4_delta >= 0 && tim4_delta < 1000) {
+          calibration.g_tim4 = tim4_delta;
+        } else {
+//          calibration.g_tim4 = 0xFFFFFFFF;
+        }
 
-				int16_t deltaTIM4   = (int16_t)periodTIM4 - (int16_t)pulseWidthTIM4;
-				deltaTIM4           = (deltaTIM4 < 0) ? (-1 * deltaTIM4) : deltaTIM4;
-				calibration.g_tim4  = deltaTIM4;
+        /* TEST */
+			  if (calibration.g_tim4 > 500 || calibration.g_tim4 < 420) {
+			    calibration.g_tim4++;
+			  }
 			}
 		}
 	}
@@ -537,7 +545,7 @@ int main(void)
 	{
 	    if ( usb_rx_data.is_received == true ) {
 	        usb_rx_handler(&usb_rx_data);
-        }
+	    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -719,7 +727,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 72-1;
+  htim3.Init.Prescaler = 8-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 65000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -773,7 +781,7 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 72-1;
+  htim4.Init.Prescaler = 8-1;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 65000-1;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -822,8 +830,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-
-  USB_Reset();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
