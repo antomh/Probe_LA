@@ -178,9 +178,25 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
             usb_tx_buff[0] = cmd;
             memcpy( usb_tx_buff + 1,
                     &temp,
-                    sizeof(uint16_t) );
+                    sizeof(uint16_t));
             CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
             break;
+
+            /* Правильный ответ протокола, раскомментировать, когда будет подправлена утилита Йоноса */
+            /* После исправления, можно удалять функции EnableTIM3() и EnableTIM4() */
+//            usb_tx_buff[0] = cmd;
+//            uint16_t temp = GetTIM3();
+//            /* Если получено некорректное значение, значения tim возвращаются = 0xFFFF */
+//            if (temp == 0xFFFF) {
+//              usb_tx_buff[1] = 1;
+//            } else {
+//              usb_tx_buff[1] = 0;
+//            }
+//            memcpy( usb_tx_buff + 2,
+//                    &temp,
+//                    sizeof(uint16_t) );
+//            CDC_Transmit_FS(usb_tx_buff, 2 + sizeof(uint16_t));
+//            break;
         }
 
         /* Команда запроса измеренной длительности */
@@ -194,6 +210,21 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                     sizeof(uint16_t));
             CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
             break;
+
+            /* Правильный ответ протокола, раскомментировать, когда будет подправлена утилита Йоноса */
+//            usb_tx_buff[0] = cmd;
+//            uint16_t temp = GetTIM4();
+//            /* Если получено некорректное значение, значения tim возвращаются = 0xFFFF */
+//            if (temp == 0xFFFF) {
+//              usb_tx_buff[1] = 1;
+//            } else {
+//              usb_tx_buff[1] = 0;
+//            }
+//            memcpy( usb_tx_buff + 2,
+//                    &temp,
+//                    sizeof(uint16_t) );
+//            CDC_Transmit_FS(usb_tx_buff, 2 + sizeof(uint16_t));
+//            break;
         }
 
         /* Команда приема калибровочной таблицы */

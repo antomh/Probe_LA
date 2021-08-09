@@ -35,6 +35,7 @@ uint8_t btn_run_get_state(void) {
     }
     else if ( btn_pin_12.is_long_press == 1 ) {
         state = BTN_LONG_PRESS;
+        btn_pin_12.is_long_press = 0;
     }
 
     return state;
@@ -51,9 +52,11 @@ uint8_t btn_up_get_state(void) {
 
     if ( btn_pin_13.was_short_pressed == 1 ) {
         state = BTN_SHORT_PRESS;
+        btn_pin_13.was_short_pressed = 0;
     }
     else if ( btn_pin_13.is_long_press == 1 ) {
         state = BTN_LONG_PRESS;
+        btn_pin_13.is_long_press = 0;
     }
 
     return state;
@@ -70,9 +73,11 @@ uint8_t btn_down_get_state(void) {
 
     if ( btn_pin_14.was_short_pressed == 1 ) {
         state = BTN_SHORT_PRESS;
+        btn_pin_14.was_short_pressed = 0;
     }
     else if ( btn_pin_14.is_long_press == 1 ) {
         state = BTN_LONG_PRESS;
+        btn_pin_14.is_long_press = 0;
     }
 
     return state;
@@ -93,8 +98,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
             }
             else {
                 /* Если кнопка нажата больше 40 мс, но меньше 800 мс, то есть однократное нажатие */
-                if ( btn_pin_12.counter > 40 ||
-                     btn_pin_12.counter < 800 ) {
+                if ( btn_pin_12.counter > 40 &&
+                     btn_pin_12.counter < 1000 ) {
 
                     /* Основной код, который надо делать по кнопке */
                     btn_pin_12.was_short_pressed = 1;
@@ -106,7 +111,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
                 }
                 /* Обнуляем статус того, что кнопка долго нажата только после того, как она была ОТЖАТА */
                 if ( btn_pin_12.is_long_press == 1 ) {
-                    btn_pin_12.is_long_press = 0;
+                    btn_pin_12.is_long_press    = 0;
+                    btn_pin_12.counter          = 0;
+                    btn_pin_12.is_count_started = 0;
                 }
             }
             break;
@@ -117,8 +124,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
                 }
                 else {
                     /* Если кнопка нажата больше 40 мс, но меньше 800 мс, то есть однократное нажатие */
-                    if ( btn_pin_13.counter > 40 ||
-                         btn_pin_13.counter < 800 ) {
+                    if ( btn_pin_13.counter > 40 &&
+                         btn_pin_13.counter < 1000 ) {
 
                         /* Основной код, который надо делать по кнопке */
                         btn_pin_13.was_short_pressed = 1;
@@ -130,7 +137,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
                     }
                     /* Обнуляем статус того, что кнопка долго нажата только после того, как она была ОТЖАТА */
                     if ( btn_pin_13.is_long_press == 1 ) {
-                        btn_pin_13.is_long_press = 0;
+                      btn_pin_13.is_long_press    = 0;
+                      btn_pin_13.counter          = 0;
+                      btn_pin_13.is_count_started = 0;
                     }
                 }
                 break;
@@ -141,11 +150,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
                 }
                 else {
                     /* Если кнопка нажата больше 40 мс, но меньше 800 мс, то есть однократное нажатие */
-                    if ( btn_pin_14.counter > 40 ||
-                         btn_pin_14.counter < 800 ) {
+                    if ( btn_pin_14.counter > 40 &&
+                         btn_pin_14.counter < 1000 ) {
 
                         /* Основной код, который надо делать по кнопке */
-                        btn_pin_13.was_short_pressed = 1;
+                        btn_pin_14.was_short_pressed = 1;
                         /*---------------------------------------------*/
 
                         btn_pin_14.counter    = 0;
@@ -153,8 +162,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
                         break;
                     }
                     /* Обнуляем статус того, что кнопка долго нажата только после того, как она была ОТЖАТА */
-                    if ( btn_pin_13.is_long_press == 1 ) {
-                        btn_pin_13.is_long_press = 0;
+                    if ( btn_pin_14.is_long_press == 1 ) {
+                      btn_pin_14.is_long_press    = 0;
+                      btn_pin_14.counter          = 0;
+                      btn_pin_14.is_count_started = 0;
                     }
                 }
                 break;

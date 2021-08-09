@@ -1,6 +1,5 @@
 /* USER CODE BEGIN Header */
 /*
- * TODO: Протестировать обработку нажатия кнопок: длинное и одиночное нажатие ( в Callback )
  *
  * */
 /* USER CODE END Header */
@@ -426,19 +425,17 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         tim3_ccr[2] = TIM3->CCR2;
         int32_t tim3_delta = tim3_ccr[2] - tim3_ccr[1];
 
+        /* Тут костыль. Мне больно смотреть на этот код. Да простят меня боги программирования. */
         if (tim3_delta < 0 && tim3_delta > -1000) {
           calibration.g_tim3 = 1000 + tim3_delta;
         } else if (tim3_delta >= 0 && tim3_delta < 1000) {
           calibration.g_tim3 = tim3_delta;
         } else {
-//          calibration.g_tim3 = 0xFFFFFFFF;
-        }
-
-        /* TEST */
-        if (calibration.g_tim3 > 500 || calibration.g_tim3 < 420) {
-          calibration.g_tim3++;
+          /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
+          calibration.g_tim3 = 0xFFFF;
         }
 			}
+			calibration.is_tim3_working = 0;
 		}
 	} else {
 		if (htim->Instance == TIM4) {
@@ -447,19 +444,17 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         tim4_ccr[2] = TIM4->CCR2;
         int32_t tim4_delta = tim4_ccr[2] - tim4_ccr[1];
 
+        /* Тут костыль. Мне больно смотреть на этот код. Да простят меня боги программирования. */
         if (tim4_delta < 0 && tim4_delta > -1000) {
           calibration.g_tim4 = 1000 + tim4_delta;
         } else if (tim4_delta >= 0 && tim4_delta < 1000) {
           calibration.g_tim4 = tim4_delta;
         } else {
-//          calibration.g_tim4 = 0xFFFFFFFF;
+          /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
+          calibration.g_tim4 = 0xFFFF;
         }
-
-        /* TEST */
-			  if (calibration.g_tim4 > 500 || calibration.g_tim4 < 420) {
-			    calibration.g_tim4++;
-			  }
 			}
+			calibration.is_tim3_working = 1;
 		}
 	}
 }
@@ -543,9 +538,9 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-	    if ( usb_rx_data.is_received == true ) {
-	        usb_rx_handler(&usb_rx_data);
-	    }
+    if ( usb_rx_data.is_received == true ) {
+      usb_rx_handler(&usb_rx_data);
+    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -830,6 +825,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  USB_Reset();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
