@@ -11,14 +11,15 @@
 /* USER CODE BEGIN Includes */
 
 /*-USER FILES----------------------------------------------------------------*/
-#include "DAC_AD5322.h"
-#include "logic_calibration_table.h"
-#include "flash.h"
-#include "crc.h"
-#include "usb_handler.h"
-#include "btn.h"
-#include "usbd_cdc_if.h"
-#include "stm32f1xx_it.h"
+#include <logic_calibration_table.h>
+#include <flash.h>
+#include <crc.h>
+#include <usb_handler.h>
+#include <btn.h>
+#include <usbd_cdc_if.h>
+#include <ad5322.h>
+#include <dac.h>
+#include <stm32f1xx_it.h>
 
 /*-STANDART C FILES----------------------------------------------------------*/
 #include "string.h"
@@ -42,8 +43,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
-
 CRC_HandleTypeDef hcrc;
 
 SPI_HandleTypeDef hspi1;
@@ -96,14 +95,17 @@ struct comparison_parameters comparison_parameter = {
         .dac_A_volt         = 0,
         .dac_B_dgt          = 0,
         .dac_B_volt         = 0,
-        .relay_state        = M12
+        .relay_state        = M27,
+        .calibration_state  = CALIBRATION_OFF,
+
+        /* Constant values */
+        .dac_dgt_val_max    = 4095,
+        .dac_dgt_val_min    = 0
 };
 
 /* Заполнение структуры для калибровки */
 struct calibration_parameters calibration = {
         .is_tim3_working        = 0,
-        .tim3_overflow_counter  = 0,
-        .tim4_overflow_counter  = 0,
         .g_tim3                 = 0,
         .g_tim4                 = 0,
         .v_polarity             = POSITIVE_POLARITY
@@ -115,369 +117,15 @@ struct calibration_parameters calibration = {
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
-static void MX_ADC1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM4_Init(void);
 static void MX_CRC_Init(void);
 /* USER CODE BEGIN PFP */
 
-/* Установка режима ЦАП А */
-void SetDacA(void)
-{
-    switch (comparison_parameter.relay_state) {
-        case M12:
-            if ( comparison_parameter.dac_A_volt >= DevNVRAM.calibration_table.volt_min_mode_12 &&
-                 comparison_parameter.dac_A_volt <= DevNVRAM.calibration_table.volt_max_mode_12)
-            {
-                comparison_parameter.dac_A_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_A );
-                DAC_AD5322_Ch1(&hspi1, comparison_parameter.dac_A_dgt);
-                comparison_parameter.set_level_status = SUCCESS;
-                break;
-            }
-            else {
-                comparison_parameter.set_level_status = ERROR;
-                break;
-            }
-
-        case M27:
-            if ( comparison_parameter.dac_A_volt >= DevNVRAM.calibration_table.volt_min_mode_27 &&
-                 comparison_parameter.dac_A_volt <= DevNVRAM.calibration_table.volt_max_mode_27)
-            {
-                comparison_parameter.dac_A_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_A );
-                DAC_AD5322_Ch1(&hspi1, comparison_parameter.dac_A_dgt);
-                comparison_parameter.set_level_status = SUCCESS;
-                break;
-            }
-            else {
-                comparison_parameter.set_level_status = ERROR;
-                break;
-            }
-        }
-}
-
-/* Установка режима ЦАП B */
-void SetDacB(void)
-{
-    switch (comparison_parameter.relay_state) {
-        case M12:
-            if ( comparison_parameter.dac_B_volt >= DevNVRAM.calibration_table.volt_min_mode_12 &&
-                 comparison_parameter.dac_B_volt <= DevNVRAM.calibration_table.volt_max_mode_12)
-            {
-                comparison_parameter.dac_B_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_B);
-                DAC_AD5322_Ch2(&hspi1, comparison_parameter.dac_B_dgt);
-                comparison_parameter.set_level_status = SUCCESS;
-                break;
-            }
-            else {
-                comparison_parameter.set_level_status = ERROR;
-                break;
-            }
-
-        case M27:
-            if ( comparison_parameter.dac_B_volt >= DevNVRAM.calibration_table.volt_min_mode_27 &&
-                 comparison_parameter.dac_B_volt <= DevNVRAM.calibration_table.volt_max_mode_27)
-            {
-                comparison_parameter.dac_B_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_B);
-                DAC_AD5322_Ch2(&hspi1, comparison_parameter.dac_B_dgt);
-                comparison_parameter.set_level_status = SUCCESS;
-                break;
-            }
-            else {
-                comparison_parameter.set_level_status = ERROR;
-                break;
-            }
-        }
-}
-
-/* Установка режимов */
-void SetAllDAC(void)
-{
-    switch (comparison_parameter.relay_state) {
-        case M12:
-            if ( comparison_parameter.dac_A_volt >= DevNVRAM.calibration_table.volt_min_mode_12 &&
-                 comparison_parameter.dac_A_volt <= DevNVRAM.calibration_table.volt_max_mode_12 &&
-                 comparison_parameter.dac_B_volt >= DevNVRAM.calibration_table.volt_min_mode_12 &&
-                 comparison_parameter.dac_B_volt <= DevNVRAM.calibration_table.volt_max_mode_12 )
-            {
-                comparison_parameter.dac_A_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_A );
-                comparison_parameter.dac_B_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_B );
-                DAC_AD5322_Ch1Ch2(&hspi1, comparison_parameter.dac_A_dgt, comparison_parameter.dac_B_dgt);
-                comparison_parameter.set_level_status = SUCCESS;
-                break;
-            }
-            else {
-                comparison_parameter.set_level_status = ERROR;
-                break;
-            }
-        case M27:
-            if ( comparison_parameter.dac_A_volt >= DevNVRAM.calibration_table.volt_min_mode_27 &&
-                 comparison_parameter.dac_A_volt <= DevNVRAM.calibration_table.volt_max_mode_27 &&
-                 comparison_parameter.dac_B_volt >= DevNVRAM.calibration_table.volt_min_mode_27 &&
-                 comparison_parameter.dac_B_volt <= DevNVRAM.calibration_table.volt_max_mode_27 )
-            {
-                comparison_parameter.dac_A_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_A );
-                comparison_parameter.dac_B_dgt = volt2dgt( &(DevNVRAM.calibration_table), &comparison_parameter, CH_B );
-                DAC_AD5322_Ch1Ch2(&hspi1, comparison_parameter.dac_A_dgt, comparison_parameter.dac_B_dgt);
-                comparison_parameter.set_level_status = SUCCESS;
-                break;
-            }
-            else {
-                comparison_parameter.set_level_status = ERROR;
-                break;
-            }
-    }
-}
-
-uint32_t unit_test(void)
-{
-    uint32_t result = 0;
-
-    /*проверка на вхождение в MIN m12*/
-    comparison_parameter.relay_state = M12;
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_12;
-    SetDacA();
-    if (comparison_parameter.set_level_status == ERROR)
-    {
-        result = (1 << 0);
-    }
-    SetDacB();
-    if (comparison_parameter.set_level_status == ERROR)
-    {
-        result = (1 << 0);
-    }
-
-    /*проверка на выход из MIN m12*/
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
-    SetDacA();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 1);
-    }
-    SetDacB();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 1);
-    }
-
-    /*проверка на выход из MAX m12*/
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
-    SetDacA();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 2);
-    }
-    SetDacB();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 2);
-    }
-
-    /*проверка на выход из норм m12*/
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12;
-    SetAllDAC();
-    if (comparison_parameter.set_level_status == ERROR)
-    {
-        result = (1 << 3);
-    }
-
-    /*проверка на выход из мин m12*/
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_12 - 1;
-    SetAllDAC();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 4);
-    }
-
-    /*проверка на выход из макс m12*/
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_12 + 1;
-    SetAllDAC();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 5);
-    }
-
-
-
-    /*проверка на вхождение в MIN m27*/
-    comparison_parameter.relay_state = M27;
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27;
-    SetDacA();
-    if (comparison_parameter.set_level_status == ERROR)
-    {
-        result = (1 << 6);
-    }
-    SetDacB();
-    if (comparison_parameter.set_level_status == ERROR)
-    {
-        result = (1 << 6);
-    }
-
-    /*проверка на выход из MIN m27*/
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
-    SetDacA();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 7);
-    }
-    SetDacB();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 7);
-    }
-
-    /*проверка на выход из MAX m27*/
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
-    SetDacA();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 8);
-    }
-    SetDacB();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-        result = (1 << 8);
-    }
-
-    /*проверка на выход из норм m27 */
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27;
-    SetAllDAC();
-    if (comparison_parameter.set_level_status == ERROR)
-    {
-        result = (1 << 9);
-    }
-
-    /*проверка на выход из мин m27*/
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_min_mode_27 - 1;
-    SetAllDAC();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-      result = (1 << 10);
-    }
-
-    /*проверка на выход из макс m27*/
-    comparison_parameter.dac_A_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
-    comparison_parameter.dac_B_volt = DevNVRAM.calibration_table.volt_max_mode_27 + 1;
-    SetAllDAC();
-    if (comparison_parameter.set_level_status != ERROR)
-    {
-      result = (1 << 11);
-    }
-
-    /* Нужно сравнить таблицу загруженную во флеш и таблицу, которая должна быть там */
-    /*  */
-
-    return result;
-}
-
-/*---------------------------------------------------------------------------*/
-inline void EnableTIM3(void)
-{
-	calibration.is_tim3_working = 1;
-}
-
-inline uint16_t GetTIM3(void)
-{
-	return calibration.g_tim3;
-}
-
-inline void resValTIM3(void)
-{
-    calibration.g_tim4 = 0;
-}
-
-/*---------------------------------------------------------------------------*/
-inline void EnableTIM4(void)
-{
-	calibration.is_tim3_working = 0;
-}
-
-inline uint16_t GetTIM4(void)
-{
-	return calibration.g_tim4;
-}
-
-inline void resValTIM4(void)
-{
-	calibration.g_tim4 = 0;
-}
-
-/*---------------------------------------------------------------------------*/
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
-  /* TEST CODE */
-  uint16_t tim3_ccr[3], tim4_ccr[3];
-
-	if (calibration.is_tim3_working == 1) {
-		if (htim->Instance == TIM3) {
-			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
-        tim3_ccr[1] = TIM3->CCR1;
-        tim3_ccr[2] = TIM3->CCR2;
-        int32_t tim3_delta = tim3_ccr[2] - tim3_ccr[1];
-
-        /* Тут костыль. Мне больно смотреть на этот код. Да простят меня боги программирования. */
-        if (tim3_delta < 0 && tim3_delta > -1000) {
-          calibration.g_tim3 = 1000 + tim3_delta;
-        } else if (tim3_delta >= 0 && tim3_delta < 1000) {
-          calibration.g_tim3 = tim3_delta;
-        } else {
-          /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
-          calibration.g_tim3 = 0xFFFF;
-        }
-			}
-			calibration.is_tim3_working = 0;
-		}
-	} else {
-		if (htim->Instance == TIM4) {
-			if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
-        tim4_ccr[1] = TIM4->CCR1;
-        tim4_ccr[2] = TIM4->CCR2;
-        int32_t tim4_delta = tim4_ccr[2] - tim4_ccr[1];
-
-        /* Тут костыль. Мне больно смотреть на этот код. Да простят меня боги программирования. */
-        if (tim4_delta < 0 && tim4_delta > -1000) {
-          calibration.g_tim4 = 1000 + tim4_delta;
-        } else if (tim4_delta >= 0 && tim4_delta < 1000) {
-          calibration.g_tim4 = tim4_delta;
-        } else {
-          /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
-          calibration.g_tim4 = 0xFFFF;
-        }
-			}
-			calibration.is_tim3_working = 1;
-		}
-	}
-}
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
-volatile uint16_t volt_ADC = 0;
-
-inline uint16_t GetADC(void)
-{
-	return volt_ADC;
-}
-
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
-{
-    /* Check if the interrupt comes from ACD1 */
-	if (hadc->Instance == ADC1) {
-		volt_ADC = HAL_ADC_GetValue(&hadc1);
-	}
-}
 
 /* USER CODE END 0 */
 
@@ -511,7 +159,6 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI1_Init();
   MX_USB_DEVICE_Init();
-  MX_ADC1_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_CRC_Init();
@@ -523,14 +170,12 @@ int main(void)
   HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
   HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
 
-  SetAllDAC();
-
-  HAL_ADCEx_Calibration_Start(&hadc1);
-  HAL_ADC_Start_IT(&hadc1);
-
-//  if (unit_test() != 0) {
-//      HardFault_Handler();
-//  }
+  /*---------------Temporary manual setting---------------*/
+  comparison_parameter.calibration_state = CALIBRATION_ON;
+  comparison_parameter.dac_A_dgt = 2048;
+  comparison_parameter.dac_B_dgt = 2048;
+  dac_set_A_B_dgt(&comparison_parameter);
+  /*---------------Delete it before release---------------*/
 
   /* USER CODE END 2 */
 
@@ -585,58 +230,12 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_ADC|RCC_PERIPHCLK_USB;
-  PeriphClkInit.AdcClockSelection = RCC_ADCPCLK2_DIV6;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USB;
   PeriphClkInit.UsbClockSelection = RCC_USBCLKSOURCE_PLL_DIV1_5;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC1_Init(void)
-{
-
-  /* USER CODE BEGIN ADC1_Init 0 */
-
-  /* USER CODE END ADC1_Init 0 */
-
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC1_Init 1 */
-
-  /* USER CODE END ADC1_Init 1 */
-  /** Common config
-  */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_3;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_13CYCLES_5;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
-
-  /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
@@ -722,7 +321,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 8-1;
+  htim3.Init.Prescaler = 72-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 65000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -776,7 +375,7 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 8-1;
+  htim4.Init.Prescaler = 72-1;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim4.Init.Period = 65000-1;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -821,7 +420,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct = {0};
 
   /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
@@ -829,25 +427,19 @@ static void MX_GPIO_Init(void)
   USB_Reset();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, AD5312_LDAC_Pin|RELAY_CONTROL_Pin|AD5312_SYNC_Pin|POLARITY_CONTROL_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, AD5312_LDAC_Pin|AD5312_SYNC_Pin|GPIO_PIN_10, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_SET);
-
-  /*Configure GPIO pin : PC13 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13;
+  /*Configure GPIO pins : AD5312_LDAC_Pin AD5312_SYNC_Pin */
+  GPIO_InitStruct.Pin = AD5312_LDAC_Pin|AD5312_SYNC_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : AD5312_LDAC_Pin Relay_Pin AD5312_SYNC_Pin PA10 */
-  GPIO_InitStruct.Pin = AD5312_LDAC_Pin|Relay_Pin|AD5312_SYNC_Pin|GPIO_PIN_10;
+  /*Configure GPIO pins : RELAY_CONTROL_Pin POLARITY_CONTROL_Pin */
+  GPIO_InitStruct.Pin = RELAY_CONTROL_Pin|POLARITY_CONTROL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 

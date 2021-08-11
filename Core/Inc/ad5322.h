@@ -12,31 +12,6 @@
 #ifndef DAC_AD5322_H
 #define DAC_AD5322_H
 
-// Подключение заголовочных файлов модулей проекта
-#include "stm32f1xx_hal.h"
-
-// Опорное напряжение ЦАП (в вольтах)
-#define DAC_REF 4.096F
-
-// Максимальное значение кода ЦАП
-#define DAC_MAX 4096
-
-// Макрос для перевода напряжения (в вольтах) в код ЦАП
-//#define VLT_TO_DGT(V) (uint16_t)(((V) / DAC_REF) * DAC_MAX)
-//#define VLT_TO_DGT(V) (float)(((V) / DAC_REF) * DAC_MAX)
-
-#define AD5312_LDAC_Pin			GPIO_PIN_1
-#define AD5312_LDAC_GPIO_Port	GPIOA
-#define Relay_Pin				GPIO_PIN_2
-#define Relay_GPIO_Port			GPIOA
-#define AD5312_SYNC_Pin			GPIO_PIN_4
-#define AD5312_SYNC_GPIO_Port	GPIOA
-#define AD5312_SCLK_Pin			GPIO_PIN_5
-#define AD5312_SCLK_GPIO_Port	GPIOA
-#define AD5312_DIN_Pin			GPIO_PIN_7
-#define AD5312_DIN_GPIO_Port	GPIOA
-
-
 // Прототипы функций
 void DAC_AD5322_Init(SPI_HandleTypeDef *pSPI);
 void DAC_AD5322_Ch1(SPI_HandleTypeDef *pSPI, uint16_t data_ch1);	// Инициализация цифро-аналогового преобразователя

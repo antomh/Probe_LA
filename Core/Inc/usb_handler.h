@@ -41,10 +41,11 @@ HAL_StatusTypeDef   usb_rx_handler(usb_rx_data_type *usb);
 
 
 /*  Command system
-    0x01 - включение реле                           data: 1B (0x00 - выключить; 0x01 - включить)    answer: 0x01 + 1B status
+    0x01 - включение реле                           data: 1B (0x00 - выключить - M27;
+                                                              0x01 - включить - M12)                answer: 0x01 + 1B status
     0x02 - ЦАП канал А                              data: 2B (значение)                             answer: 0x02 + 1B status
     0x03 - ЦАП канал B                              data: 2B (значение)                             answer: 0x03 + 1B status
-    0x04 - АЦП запрос значения                      data: 0B                                        answer: 0x04 + 2B value
+    0x04 - управление режимом калибровки            data: 1B                                        answer: 0x04 + 1B status
     0x05 - запрос состояния (Relay, DA, DB)         data: 0B                                        answer: 0x05 + 1B состояние реле + 2B значение ЦАП канал А + 2B значение ЦАП канал B
     0x06 - запрос состояния кнопок (Run, Up, Down)  data: 0B                                        answer: 0x06 + 1B состояние кнопки Run + 1B состояние кнопки Up + 1B состояние кнопки Down
     0x07 - запрос ID устройства                     data: 0B                                        answer: 0x07 + 3B ID (3-байтовое число), например 111AE9 (в 10-тичной системе - 1121001- 11 неделя-21год - 001 порядковый номер изготовления)
@@ -70,9 +71,9 @@ HAL_StatusTypeDef   usb_rx_handler(usb_rx_data_type *usb);
             u16 Buf[count] = data[n-1]  u8
                 Buf[count] = data[n]    u8
 
-    0x0C - Установка полярности источника питания   data: []
+    0x0C - Установка полярности источника питания   data: 1B          answer: 0x0C + 1B status
 
-    0х0D - Запись во флеш калибровочной таблицы     data: [0x0D]        answer: 0x0D + 1B status
+    0х0D - Запись во флеш калибровочной таблицы     data: 0B          answer: 0x0D + 1B status
     0x0E - Прием параметров калибровки:
                                                     data: 0x0E + 10B ([Шаг калибровки][Мин. V при 12 В][Макс. V при 12 В][Мин. V при 27 В][Макс. V при 27 В])
                                                     answer: 0x0E + 1B status

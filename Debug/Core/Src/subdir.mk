@@ -5,9 +5,10 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../Core/Src/DAC_AD5322.c \
+../Core/Src/ad5322.c \
 ../Core/Src/btn.c \
 ../Core/Src/crc.c \
+../Core/Src/dac.c \
 ../Core/Src/flash.c \
 ../Core/Src/logic_calibration_table.c \
 ../Core/Src/main.c \
@@ -19,9 +20,10 @@ C_SRCS += \
 ../Core/Src/usb_handler.c 
 
 OBJS += \
-./Core/Src/DAC_AD5322.o \
+./Core/Src/ad5322.o \
 ./Core/Src/btn.o \
 ./Core/Src/crc.o \
+./Core/Src/dac.o \
 ./Core/Src/flash.o \
 ./Core/Src/logic_calibration_table.o \
 ./Core/Src/main.o \
@@ -33,9 +35,10 @@ OBJS += \
 ./Core/Src/usb_handler.o 
 
 C_DEPS += \
-./Core/Src/DAC_AD5322.d \
+./Core/Src/ad5322.d \
 ./Core/Src/btn.d \
 ./Core/Src/crc.d \
+./Core/Src/dac.d \
 ./Core/Src/flash.d \
 ./Core/Src/logic_calibration_table.d \
 ./Core/Src/main.d \

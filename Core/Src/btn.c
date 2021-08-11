@@ -35,7 +35,6 @@ uint8_t btn_run_get_state(void) {
     }
     else if ( btn_pin_12.is_long_press == 1 ) {
         state = BTN_LONG_PRESS;
-        btn_pin_12.is_long_press = 0;
     }
 
     return state;
@@ -56,7 +55,6 @@ uint8_t btn_up_get_state(void) {
     }
     else if ( btn_pin_13.is_long_press == 1 ) {
         state = BTN_LONG_PRESS;
-        btn_pin_13.is_long_press = 0;
     }
 
     return state;
@@ -77,7 +75,6 @@ uint8_t btn_down_get_state(void) {
     }
     else if ( btn_pin_14.is_long_press == 1 ) {
         state = BTN_LONG_PRESS;
-        btn_pin_14.is_long_press = 0;
     }
 
     return state;
@@ -103,6 +100,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
                     /* Основной код, который надо делать по кнопке */
                     btn_pin_12.was_short_pressed = 1;
+
+                    /* DELETE THIS */
+                    HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_SET);
+                    /*-------------*/
+
                     /*---------------------------------------------*/
 
                     btn_pin_12.counter    = 0;
@@ -129,6 +131,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
                         /* Основной код, который надо делать по кнопке */
                         btn_pin_13.was_short_pressed = 1;
+
+                        /* DELETE THIS */
+                        HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_RESET);
+                        /*-------------*/
+
                         /*---------------------------------------------*/
 
                         btn_pin_13.counter    = 0;

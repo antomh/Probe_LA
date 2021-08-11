@@ -44,10 +44,16 @@ extern "C" {
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
 
-/* Режим работы щупа */
+/* Режим работы делителя щупа */
 enum RelayState {       //RelayState =|1:m12|0:m27|
     M12 = 0x01,
     M27 = 0x00
+};
+
+/* Режим работы щупа (калибровка или обычная работа) */
+enum CalibrationState {
+  CALIBRATION_OFF = 0x00,
+  CALIBRATION_ON  = 0x01
 };
 
 /* Каналы ЦАП */
@@ -71,16 +77,17 @@ struct comparison_parameters {
   uint16_t  dac_A_dgt;      // ЦАП А, в значениях ЦАП
   uint16_t  dac_B_dgt;      // ЦАП B, в значениях ЦАП
 
-  enum RelayState relay_state;  // режим работы |1:M12|0:M27|
-  bool set_level_status;        // статус выполнения установки уровня
+  enum RelayState       relay_state;        // режим работы |1:M12|0:M27|
+  enum CalibrationState calibration_state;  // состояние калибровки (включена/нет)
+  bool                  set_level_status;   // статус выполнения установки уровня
+
+  const uint16_t  dac_dgt_val_max;      // максимальное значение ЦАП
+  const uint16_t  dac_dgt_val_min;      // минимальное  значение ЦАП
 };
 
 /* Переменные для калибровки */
 struct calibration_parameters {
     uint8_t is_tim3_working;
-    uint8_t tim3_overflow_counter;
-    uint8_t tim4_overflow_counter;
-
     uint16_t g_tim3;
     uint16_t g_tim4;
 
@@ -98,33 +105,22 @@ struct calibration_parameters {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-/*----------------------------------------------------------------------------*/
-void        SetDacA(void);
-void        SetDacB(void);
-void        SetAllDAC(void);
-uint16_t    GetADC(void);
-/*----------------------------------------------------------------------------*/
-void        EnableTIM3(void);
-void        resValTIM3(void);
 
-void        EnableTIM4(void);
-void        resValTIM4(void);
-
-uint16_t    GetTIM3(void);
-uint16_t    GetTIM4(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
 #define AD5312_LDAC_Pin GPIO_PIN_1
 #define AD5312_LDAC_GPIO_Port GPIOA
-#define Relay_Pin GPIO_PIN_2
-#define Relay_GPIO_Port GPIOA
+#define RELAY_CONTROL_Pin GPIO_PIN_2
+#define RELAY_CONTROL_GPIO_Port GPIOA
 #define AD5312_SYNC_Pin GPIO_PIN_4
 #define AD5312_SYNC_GPIO_Port GPIOA
 #define AD5312_SCLK_Pin GPIO_PIN_5
 #define AD5312_SCLK_GPIO_Port GPIOA
 #define AD5312_DIN_Pin GPIO_PIN_7
 #define AD5312_DIN_GPIO_Port GPIOA
+#define POLARITY_CONTROL_Pin GPIO_PIN_15
+#define POLARITY_CONTROL_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

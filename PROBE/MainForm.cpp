@@ -221,7 +221,7 @@ void __fastcall TFormTestSerial::ButtonGetStatusClick(TObject *Sender) {
 //---------------------------------------------------------------------------
 
 void __fastcall TFormTestSerial::CheckBoxRelayClick(TObject *Sender) {
-	ShowStatusBar(probe.setRelay(CheckBoxRelay->Checked) ? UnicodeString(L"Установка Рэле: Успешно") : UnicodeString(L"Установка Рэле: Ошибка"));
+	ShowStatusBar(probe.setRelay(CheckBoxRelay->Checked) ? UnicodeString(L"Установка Реле: Успешно") : UnicodeString(L"Установка Реле: Ошибка"));
 }
 //---------------------------------------------------------------------------
 

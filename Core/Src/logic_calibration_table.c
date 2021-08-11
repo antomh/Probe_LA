@@ -86,8 +86,8 @@ void calib_table_init(Table_t *ct)
 
         ct->calibration_step = 1040;
         ct->volt_min_mode_12 = -9360;
-        ct->volt_max_mode_12 = 9360;
         ct->volt_min_mode_27 = -27000;
+        ct->volt_max_mode_12 = 9360;
         ct->volt_max_mode_27 = 27000;
 
         /* Заполнение калибровочной таблицы значениями по умолчанию */

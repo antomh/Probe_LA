@@ -28,31 +28,20 @@
 #define MIN_VOLT_MODE_12    -5000
 #define MAX_VOLT_MODE_12    12000
 
-#define MIN_VOLT_MODE_27    -27000
-#define MAX_VOLT_MODE_27    27000
-
-//--------------------------------------------------------------------------
-// Опорное напряжение ЦАП (в вольтах)
-#define DAC_REF 4.096F
-
-// Максимальное значение кода ЦАП
-#define DAC_MAX 4096
-
-// Макрос для перевода напряжения (в вольтах) в код ЦАП
-#define VLT_TO_DGT(V) (float)(((V) / DAC_REF) * DAC_MAX)
+#define MIN_VOLT_MODE_27    -32000
+#define MAX_VOLT_MODE_27    32000
 
 
-//--------------------------------------------------------------------------
 typedef struct
 {
 	uint16_t Hardwire;
 	uint16_t Firmware;                      /* 2*2 = 4 байта */
 
 	uint16_t calibration_step;
-    int16_t  volt_min_mode_12;              /* Минимальное значение V в режиме 12 В */
-    int16_t  volt_max_mode_12;
-    int16_t  volt_min_mode_27;
-    int16_t  volt_max_mode_27;              /* 5*2 = 10 байт */
+  int16_t  volt_min_mode_12;              /* Минимальное значение V в режиме 12 В */
+  int16_t  volt_max_mode_12;
+  int16_t  volt_min_mode_27;
+  int16_t  volt_max_mode_27;              /* 5*2 = 10 байт */
 
 	uint32_t SN;                            /* 4 байта */
 

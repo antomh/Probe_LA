@@ -12,6 +12,7 @@
 #include "usb_handler.h"
 #include "crc.h"
 #include "btn.h"
+#include "dac.h"
 
 /*-STM LIBRARY FILES---------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
@@ -64,21 +65,32 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
     switch (cmd) {
         /* Команда включения реле */
         case 0x01 :
-            if ( usb->len >= 2 && (usb->buff[1] == 0x01 || usb->buff[1] == 0x00) ) {
+            if (usb->len >= 2 ) {
+              if ( usb->buff[1] == 0x01 ) {
+                /* Включение реле -> установка режима 12 вольт */
+                comparison_parameter.relay_state = M12;
+                HAL_GPIO_WritePin(RELAY_CONTROL_GPIO_Port, RELAY_CONTROL_Pin, GPIO_PIN_SET);
+              }
+              else if (usb->buff[1] == 0x00) {
+                /* Выключение реле -> установка режима 27 вольт */
+                comparison_parameter.relay_state = M27;
+                HAL_GPIO_WritePin(RELAY_CONTROL_GPIO_Port, RELAY_CONTROL_Pin, GPIO_PIN_RESET);
+              }
 
-                HAL_GPIO_WritePin(Relay_GPIO_Port, Relay_Pin, GPIO_PIN_SET);
+              /* Переинициализация значения ЦАПов для сброса и установки правильных значений */
+              if (comparison_parameter.calibration_state == CALIBRATION_OFF) {
+                dac_set_A_B_volt(&comparison_parameter, &DevNVRAM);
+              } else if (comparison_parameter.calibration_state == CALIBRATION_ON) {
+                dac_set_A_B_dgt(&comparison_parameter);
+              }
 
-                if ( usb->buff[1] == 0x01 ) {
-                    comparison_parameter.relay_state = M12;
-                }
-                else if (usb->buff[1] == 0x00) {
-                    comparison_parameter.relay_state = M27;
-                }
-                SetAllDAC();
+              if (comparison_parameter.set_level_status == SUCCESS) {
                 usb_tx_buff[1] = 0x00; // успешно
-            }
-            else {
-                usb_tx_buff[1] = 0x01; // ошибка
+              } else {
+                usb_tx_buff[1] = 0x01;
+              }
+            } else {
+              usb_tx_buff[1] = 0x01; // ошибка
             }
 
             usb_tx_buff[0] = cmd;
@@ -87,61 +99,107 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
 
         /* Команда калибровки ЦАП А */
         case 0x02 :
-            if (usb->len >= 3) {
-                memcpy( &comparison_parameter.dac_A_volt,
-                        usb->buff + 1,
-                        sizeof(uint16_t) );
-                SetDacA();
+        {
+          if (usb->len >= 3) {
+            /* Используем значения в вольтах или в абсолютных значениях ЦАПа в
+             * зависимости от того, включен режим калибровки или нет */
+            if (comparison_parameter.calibration_state == CALIBRATION_OFF) {
+              memcpy( &comparison_parameter.dac_A_volt,
+                      usb->buff + 1,
+                      sizeof(uint16_t) );
+              dac_set_A_volt(&comparison_parameter, &DevNVRAM);
+            } else if (comparison_parameter.calibration_state == CALIBRATION_ON) {
+              memcpy( &comparison_parameter.dac_A_dgt,
+                      usb->buff + 1,
+                      sizeof(uint16_t) );
+              dac_set_A_dgt(&comparison_parameter);
+            }
+
+              if (comparison_parameter.set_level_status == SUCCESS) {
                 usb_tx_buff[1] = 0x00; // успешно
-            }
-            else {
-                usb_tx_buff[1] = 0x01; // ошибка
-            }
-            usb_tx_buff[0] = cmd;
-            CDC_Transmit_FS(usb_tx_buff, 2);
-            break;
+              } else {
+                usb_tx_buff[1] = 0x01;
+              }
+          } else {
+            usb_tx_buff[1] = 0x01; // ошибка
+          }
+          usb_tx_buff[0] = cmd;
+          CDC_Transmit_FS(usb_tx_buff, 2);
+          break;
+        }
 
         /* Команда калибровки ЦАП В */
         case 0x03 :
-            if (usb->len >= 3) {
-                memcpy( &comparison_parameter.dac_B_volt,
-                        usb->buff + 1,
-                        sizeof(uint16_t) );
-                SetDacB();
-
-                usb_tx_buff[1] = 0x00; // успешно
+        {
+          if (usb->len >= 3) {
+            /* Используем значения в вольтах или в абсолютных значениях ЦАПа в
+             * зависимости от того, включен режим калибровки или нет */
+            if (comparison_parameter.calibration_state == CALIBRATION_OFF) {
+              memcpy( &comparison_parameter.dac_B_volt,
+                      usb->buff + 1,
+                      sizeof(uint16_t) );
+              dac_set_B_volt(&comparison_parameter, &DevNVRAM);
+            } else if (comparison_parameter.calibration_state == CALIBRATION_ON) {
+              memcpy( &comparison_parameter.dac_B_dgt,
+                      usb->buff + 1,
+                      sizeof(uint16_t) );
+              dac_set_B_dgt(&comparison_parameter);
             }
-            else {
-                usb_tx_buff[1] = 0x01; // ошибка
-            }
-            usb_tx_buff[0] = cmd;
-            CDC_Transmit_FS(usb_tx_buff, 2);
-            break;
 
-        /* Команда запроса значения АЦП */
+            if (comparison_parameter.set_level_status == SUCCESS) {
+              usb_tx_buff[1] = 0x00; // успешно
+            } else {
+              usb_tx_buff[1] = 0x01;
+            }
+          } else {
+            usb_tx_buff[1] = 0x01; // ошибка
+          }
+          usb_tx_buff[0] = cmd;
+          CDC_Transmit_FS(usb_tx_buff, 2);
+          break;
+        }
+
+        /* Команда управления режимом калибровки */
         case 0x04 :
         {
-            uint16_t adc_value = GetADC();
-            memcpy(usb_tx_buff + 1, &adc_value, sizeof(adc_value));
-            usb_tx_buff[0] = cmd;
-            CDC_Transmit_FS(usb_tx_buff, 3);
-            break;
+          if (usb->len >= 2) {
+            if (usb->buff[1] == 1) {
+              comparison_parameter.calibration_state = CALIBRATION_ON;
+            } else if (usb->buff[1] == 0) {
+              comparison_parameter.calibration_state = CALIBRATION_OFF;
+            }
+            usb_tx_buff[1] = 0x01;
+          } else {
+            usb_tx_buff[1] = 0x00;
+          }
+          usb_tx_buff[0] = cmd;
+          CDC_Transmit_FS(usb_tx_buff, 2);
+          break;
         }
 
         /* Команда запроса состояния ЦАПов */
         case 0x05 :
         {
+          if (comparison_parameter.calibration_state == CALIBRATION_OFF) {
             memcpy( usb_tx_buff + 2,
                     &comparison_parameter.dac_A_volt,
                     sizeof(uint16_t) );
             memcpy( usb_tx_buff + 4,
                     &comparison_parameter.dac_B_volt,
                     sizeof(uint16_t) );
+          } else if (comparison_parameter.calibration_state == CALIBRATION_ON) {
+            memcpy( usb_tx_buff + 2,
+                    &comparison_parameter.dac_A_dgt,
+                    sizeof(uint16_t) );
+            memcpy( usb_tx_buff + 4,
+                    &comparison_parameter.dac_B_dgt,
+                    sizeof(uint16_t) );
+          }
 
-            usb_tx_buff[0] = cmd;
-            usb_tx_buff[1] = comparison_parameter.relay_state;
-            CDC_Transmit_FS(usb_tx_buff, 6);
-            break;
+          usb_tx_buff[0] = cmd;
+          usb_tx_buff[1] = comparison_parameter.relay_state;
+          CDC_Transmit_FS(usb_tx_buff, 6);
+          break;
         }
 
         /* Команда запроса состояния кнопок */
@@ -170,14 +228,12 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
             break;
         }
 
-        /* Команда запроса измеренной длительности */
+        /* Команда запроса измеренной длительности канала A*/
         case 0x08 :
         {
-            EnableTIM3();
-            uint16_t temp = GetTIM3();
             usb_tx_buff[0] = cmd;
             memcpy( usb_tx_buff + 1,
-                    &temp,
+                    &calibration.g_tim3,
                     sizeof(uint16_t));
             CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
             break;
@@ -199,14 +255,12 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
 //            break;
         }
 
-        /* Команда запроса измеренной длительности */
+        /* Команда запроса измеренной длительности канала B */
         case 0x09 :
         {
-            EnableTIM4();
-            uint16_t temp = GetTIM4();
             usb_tx_buff[0] = cmd;
             memcpy( usb_tx_buff + 1,
-                    &temp,
+                &calibration.g_tim4,
                     sizeof(uint16_t));
             CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
             break;
@@ -390,27 +444,34 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         }
 
         /* Команда установки полярности источника питания при калибровке */
-        case 0x0C :
-            if (usb->len >= 2 && (usb->buff[1] == 0x01 || usb->buff[1] == 0x00)) {
-
-                if (usb->buff[1] == 0x01) {
-                    calibration.v_polarity = POSITIVE_POLARITY;
-                }
-                else if (usb->buff[1] == 0x00) {
-                    calibration.v_polarity = NEGATIVE_POLARITY;
-                }
-                usb_tx_buff[1] = 0x00; // успешно
+//        case 0x0C :
+//        {
+        case 0x0D :
+        {
+          if (usb->len >= 2) {
+            if (usb->buff[1] == 0x00) {
+              calibration.v_polarity = POSITIVE_POLARITY;
+              /* Change polarity control pin */
+              HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_SET);
+            } else if (usb->buff[1] == 0x01) {
+              calibration.v_polarity = NEGATIVE_POLARITY;
+              /* Change polarity control pin */
+              HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_RESET);
             }
-            else {
-                usb_tx_buff[1] = 0x01; // ошибка
-            }
+            usb_tx_buff[1] = 0x00; // успешно
+          } else {
+            usb_tx_buff[1] = 0x01; // ошибка
+          }
 
-            usb_tx_buff[0] = cmd;
-            CDC_Transmit_FS(usb_tx_buff, 2);
-            break;
+          usb_tx_buff[0] = cmd;
+          CDC_Transmit_FS(usb_tx_buff, 2);
+          break;
+        }
 
         /* Команда записи во флеш калибровочной таблицы */
-        case 0x0D :
+//        case 0x0D :
+//        {
+        case 0x0C :
         {
             if (usb->len >= 2)
             {
