@@ -13,6 +13,7 @@
 #include "crc.h"
 #include "btn.h"
 #include "dac.h"
+#include <tim.h>
 
 /*-STM LIBRARY FILES---------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
@@ -28,7 +29,6 @@ extern struct btn btn_pin_12;
 extern struct btn btn_pin_13;
 extern struct btn btn_pin_14;
 extern struct comparison_parameters comparison_parameter;
-extern struct calibration_parameters calibration;
 
 /*---------------------------------------------------------------------------*/
 
@@ -231,12 +231,15 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         /* Команда запроса измеренной длительности канала A*/
         case 0x08 :
         {
-            usb_tx_buff[0] = cmd;
-            memcpy( usb_tx_buff + 1,
-                    &calibration.g_tim3,
-                    sizeof(uint16_t));
-            CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
-            break;
+          usb_tx_buff[0] = cmd;
+          uint16_t tim = tim_get_tim3_duration_of_capture();
+          memcpy( usb_tx_buff + 1,
+                  &tim,
+                  sizeof(uint16_t));
+          CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
+
+          tim_set_tim3_duration_of_capture(0);
+          break;
 
             /* Правильный ответ протокола, раскомментировать, когда будет подправлена утилита Йоноса */
             /* После исправления, можно удалять функции EnableTIM3() и EnableTIM4() */
@@ -259,10 +262,13 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         case 0x09 :
         {
             usb_tx_buff[0] = cmd;
+            uint16_t tim = tim_get_tim4_duration_of_capture();
             memcpy( usb_tx_buff + 1,
-                &calibration.g_tim4,
+                    &tim,
                     sizeof(uint16_t));
             CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
+
+            tim_set_tim4_duration_of_capture(0);
             break;
 
             /* Правильный ответ протокола, раскомментировать, когда будет подправлена утилита Йоноса */
@@ -450,13 +456,9 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         {
           if (usb->len >= 2) {
             if (usb->buff[1] == 0x00) {
-              calibration.v_polarity = POSITIVE_POLARITY;
-              /* Change polarity control pin */
-              HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_SET);
+              main_set_positive_polarity();
             } else if (usb->buff[1] == 0x01) {
-              calibration.v_polarity = NEGATIVE_POLARITY;
-              /* Change polarity control pin */
-              HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_RESET);
+              main_set_negative_polarity();
             }
             usb_tx_buff[1] = 0x00; // успешно
           } else {

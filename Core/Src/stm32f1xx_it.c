@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 
 #include "btn.h"
+#include <tim.h>
 
 /* USER CODE END Includes */
 
@@ -49,8 +50,6 @@
 extern struct btn btn_pin_12;
 extern struct btn btn_pin_13;
 extern struct btn btn_pin_14;
-
-extern struct calibration_parameters calibration;
 
 /* USER CODE END PV */
 
@@ -196,19 +195,19 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 0 */
     if ( btn_pin_12.is_count_started == 1 ) {
         ++btn_pin_12.counter;
-        if ( btn_pin_12.counter >= 1000 ) {
+        if ( btn_pin_12.counter >= TIME_MS_LONG_PRESS ) {
             btn_pin_12.is_long_press = 1;
         }
     }
     if ( btn_pin_13.is_count_started == 1 ) {
         ++btn_pin_13.counter;
-        if ( btn_pin_13.counter >= 1000 ) {
+        if ( btn_pin_13.counter >= TIME_MS_LONG_PRESS ) {
             btn_pin_13.is_long_press = 1;
         }
     }
     if ( btn_pin_14.is_count_started == 1 ) {
         ++btn_pin_14.counter;
-        if ( btn_pin_14.counter >= 1000 ) {
+        if ( btn_pin_14.counter >= TIME_MS_LONG_PRESS ) {
             btn_pin_14.is_long_press = 1;
         }
     }
@@ -290,43 +289,39 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
   uint16_t tim3_ccr[3], tim4_ccr[3];
 
-  if (calibration.is_tim3_working == 1) {
-    if (htim->Instance == TIM3) {
-      if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
-        tim3_ccr[1] = TIM3->CCR1;
-        tim3_ccr[2] = TIM3->CCR2;
-        int32_t tim3_delta = tim3_ccr[2] - tim3_ccr[1];
+  if (htim->Instance == TIM4) {
+    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
+      tim4_ccr[1] = TIM4->CCR1;
+      tim4_ccr[2] = TIM4->CCR2;
+      int32_t tim4_delta = tim4_ccr[2] - tim4_ccr[1];
 
-        /* Тут костыль. Мне больно смотреть на этот код. Да простят меня боги программирования. */
-        if (tim3_delta < 0 && tim3_delta > -1000) {
-          calibration.g_tim3 = 1000 + tim3_delta;
-        } else if (tim3_delta >= 0 && tim3_delta < 1000) {
-          calibration.g_tim3 = tim3_delta;
-        } else {
-          /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
-          calibration.g_tim3 = 0xFFFF;
-        }
+      /* Тут костыль. Мне больно смотреть на этот код. Да простят меня боги программирования. */
+      if (tim4_delta < 0 && tim4_delta > -TIME_PERIOD_MS_MAX) {
+        tim_set_tim4_duration_of_capture(TIME_PERIOD_MS_MAX + tim4_delta);
+      } else if (tim4_delta >= 0 && tim4_delta < TIME_PERIOD_MS_MAX) {
+        tim_set_tim4_duration_of_capture(tim4_delta);
+      } else {
+        /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
+        tim_set_tim4_duration_of_capture(0xFFFF);
       }
-      calibration.is_tim3_working = 0;
     }
-  } else {
-    if (htim->Instance == TIM4) {
-      if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
-        tim4_ccr[1] = TIM4->CCR1;
-        tim4_ccr[2] = TIM4->CCR2;
-        int32_t tim4_delta = tim4_ccr[2] - tim4_ccr[1];
+  }
 
-        /* Тут костыль. Мне больно смотреть на этот код. Да простят меня боги программирования. */
-        if (tim4_delta < 0 && tim4_delta > -1000) {
-          calibration.g_tim4 = 1000 + tim4_delta;
-        } else if (tim4_delta >= 0 && tim4_delta < 1000) {
-          calibration.g_tim4 = tim4_delta;
-        } else {
-          /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
-          calibration.g_tim4 = 0xFFFF;
-        }
+  if (htim->Instance == TIM3) {
+    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
+      tim3_ccr[1] = TIM3->CCR1;
+      tim3_ccr[2] = TIM3->CCR2;
+      int32_t tim3_delta = tim3_ccr[2] - tim3_ccr[1];
+
+      /* Тут костыль. Мне больно смотреть на этот код. Да простят меня боги программирования. */
+      if (tim3_delta < 0 && tim3_delta > -TIME_PERIOD_MS_MAX) {
+        tim_set_tim3_duration_of_capture(TIME_PERIOD_MS_MAX + tim3_delta);
+      } else if (tim3_delta >= 0 && tim3_delta < TIME_PERIOD_MS_MAX) {
+        tim_set_tim3_duration_of_capture(tim3_delta);
+      } else {
+        /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
+        tim_set_tim3_duration_of_capture(0xFFFF);
       }
-      calibration.is_tim3_working = 1;
     }
   }
 }

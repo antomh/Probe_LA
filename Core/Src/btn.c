@@ -95,14 +95,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
             }
             else {
                 /* Если кнопка нажата больше 40 мс, но меньше 800 мс, то есть однократное нажатие */
-                if ( btn_pin_12.counter > 40 &&
-                     btn_pin_12.counter < 1000 ) {
+                if ( btn_pin_12.counter > TIME_MS_CONTACT_BOUNCE &&
+                     btn_pin_12.counter < TIME_MS_LONG_PRESS ) {
 
                     /* Основной код, который надо делать по кнопке */
                     btn_pin_12.was_short_pressed = 1;
 
                     /* DELETE THIS */
-                    HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_SET);
+                    main_set_positive_polarity();
                     /*-------------*/
 
                     /*---------------------------------------------*/
@@ -126,14 +126,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
                 }
                 else {
                     /* Если кнопка нажата больше 40 мс, но меньше 800 мс, то есть однократное нажатие */
-                    if ( btn_pin_13.counter > 40 &&
-                         btn_pin_13.counter < 1000 ) {
+                    if ( btn_pin_13.counter > TIME_MS_CONTACT_BOUNCE &&
+                         btn_pin_13.counter < TIME_MS_LONG_PRESS ) {
 
                         /* Основной код, который надо делать по кнопке */
                         btn_pin_13.was_short_pressed = 1;
 
                         /* DELETE THIS */
-                        HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_RESET);
+                        main_set_negative_polarity();
                         /*-------------*/
 
                         /*---------------------------------------------*/
@@ -157,8 +157,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
                 }
                 else {
                     /* Если кнопка нажата больше 40 мс, но меньше 800 мс, то есть однократное нажатие */
-                    if ( btn_pin_14.counter > 40 &&
-                         btn_pin_14.counter < 1000 ) {
+                    if ( btn_pin_14.counter > TIME_MS_CONTACT_BOUNCE &&
+                         btn_pin_14.counter < TIME_MS_LONG_PRESS ) {
 
                         /* Основной код, который надо делать по кнопке */
                         btn_pin_14.was_short_pressed = 1;

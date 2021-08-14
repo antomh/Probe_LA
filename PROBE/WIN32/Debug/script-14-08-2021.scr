@@ -59,9 +59,9 @@ set_voltage(3, -v) end;
         code = step_by_step(channel,code,1);
 
         if mode == 12 then 
-                add_12v(channel, v*koeff, code)
+                add_12v(channel, v/koeff, code)
         else 
-                add_27v(channel, v*koeff, code) 
+                add_27v(channel,v/koeff,code) 
         end;
 
        console(''..code..'>>'..tostring(v)..'В');
@@ -72,7 +72,7 @@ end
 --end_functions
 local from = 0;
 local to     = 8;
-local step  = 0.5;
+local step  = 1;
 local k      = 1.04;
 local LOW_COMPARATOR = 0;
 local HI_COMPARATOR     = 1;
@@ -83,57 +83,62 @@ local MODE_27 = 27;
 set_default(); -- устанавливаются параметры ИП
 initialize();     -- инициализируется калибровочная таблица
 
--- {0..7В} Канал B(верхний компаратор)
+-- {0..12В} Канал B(верхний компаратор)
 
 from = 0;
-to     = 7;
-evaluate(HI_COMPARATOR, MODE_12, 2000, from, to, step,k);
+to     = 8;
+evaluate(HI_COMPARATOR, MODE_12, 2100, from, to, step,k);
 
 save();
 
--- {0..7В} Канал А(нижний компаратор)
+-- {0..12В} Канал А(нижний компаратор)
 
-evaluate(LOW_COMPARATOR, MODE_12, 2000, from, to, step,k);
+from = 0;
+to     = 8;
+evaluate(LOW_COMPARATOR, MODE_12, 2100, from, to, step,k);
 save();
 
 -- {0..27В} Канал А(нижний компаратор)
 
-from = 0;
+from = 5;
 to     = 27;
-evaluate(LOW_COMPARATOR, MODE_27, 2000, from, to, step,k);
+evaluate(LOW_COMPARATOR, MODE_27, 2400, from, to, step,k);
 save();
-
 -- {0..27В} Канал B(верхний компаратор)
 
-evaluate(HI_COMPARATOR, MODE_27, 2000, from, to, step,k);
+from = 5;
+to     = 27;
+evaluate(HI_COMPARATOR, MODE_27, 2400, from, to, step,k);
 save();
-message('Измените полярность ИП, нажав центральную кнопку на щупе !');
+message('Измените полярность ИП!');
 --======================================
-
--- {-7..0В} Канал А(нижний компаратор)
-
-from = -7;
+from = -5;
 to     = 0;
+
+
+
+-- {-5..0В} Канал А(нижний компаратор)
 
 evaluate(LOW_COMPARATOR, MODE_12, 500, from, to, step,k);
 save();
-
--- {-7..0В} Канал B(верхний компаратор)
+-- {-5..0В} Канал B(верхний компаратор)
 
 evaluate(HI_COMPARATOR, MODE_12, 500, from, to, step,k);
 save();
-
 ---------------------------------------
 
+from = -27;
+to     = -5;
 -- {-27..0В} Канал А(нижний компаратор)
 
-from = -27;
-to     = 0;
 evaluate(LOW_COMPARATOR, MODE_27, 500, from, to, step,k);
 save();
-
 -- {-27..0В} Канал B(верхний компаратор)
 
 evaluate(HI_COMPARATOR, MODE_27, 500, from, to, step,k);
+
 save();
-message('Восстановите прямую полярность ИП, нажав дальнюю от иглы щупа кнопку!');
+
+
+
+

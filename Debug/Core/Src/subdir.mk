@@ -17,6 +17,7 @@ C_SRCS += \
 ../Core/Src/syscalls.c \
 ../Core/Src/sysmem.c \
 ../Core/Src/system_stm32f1xx.c \
+../Core/Src/tim.c \
 ../Core/Src/usb_handler.c 
 
 OBJS += \
@@ -32,6 +33,7 @@ OBJS += \
 ./Core/Src/syscalls.o \
 ./Core/Src/sysmem.o \
 ./Core/Src/system_stm32f1xx.o \
+./Core/Src/tim.o \
 ./Core/Src/usb_handler.o 
 
 C_DEPS += \
@@ -47,6 +49,7 @@ C_DEPS += \
 ./Core/Src/syscalls.d \
 ./Core/Src/sysmem.d \
 ./Core/Src/system_stm32f1xx.d \
+./Core/Src/tim.d \
 ./Core/Src/usb_handler.d 
 
 

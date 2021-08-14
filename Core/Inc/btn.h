@@ -14,6 +14,8 @@
  * UP   - PIN_13
  * DOWN - PIN_14
  * */
+#define TIME_MS_LONG_PRESS      600
+#define TIME_MS_CONTACT_BOUNCE  40
 
 enum BTN_STATE {
     BTN_NOT_PRESSED     = 0x00,

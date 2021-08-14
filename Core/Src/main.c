@@ -19,6 +19,7 @@
 #include <usbd_cdc_if.h>
 #include <ad5322.h>
 #include <dac.h>
+#include <tim.h>
 #include <stm32f1xx_it.h>
 
 /*-STANDART C FILES----------------------------------------------------------*/
@@ -56,59 +57,51 @@ union NVRAM DevNVRAM;
 
 /* Структура для организации приема пакетов по USB */
 usb_rx_data_type usb_rx_data = {
-        .is_handled     = true,
-        .is_received    = false,
-        .len            = 0,
-        .buff           = {0,0,0,0,0,0,0,0,
-                           0,0,0,0,0,0,0,0,
-                           0,0,0,0,0,0,0,0,
-                           0,0,0,0,0,0,0,0,
-                           0,0,0,0,0,0,0,0,
-                           0,0,0,0,0,0,0,0,
-                           0,0,0,0,0,0,0,0,
-                           0,0,0,0,0,0,0,0}
+      .is_handled     = true,
+      .is_received    = false,
+      .len            = 0,
+      .buff           = {0,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,0,
+                         0,0,0,0,0,0,0,0}
 };
 
 /* Заполнение структур для работы с кнопками */
 struct btn btn_pin_12 = {
-        .is_long_press      = 0,
-        .was_short_pressed  = 0,
-        .is_count_started   = 0,
-        .counter            = 0
+      .is_long_press      = 0,
+      .was_short_pressed  = 0,
+      .is_count_started   = 0,
+      .counter            = 0
 };
 struct btn btn_pin_13 = {
-        .is_long_press      = 0,
-        .was_short_pressed  = 0,
-        .is_count_started   = 0,
-        .counter            = 0
+      .is_long_press      = 0,
+      .was_short_pressed  = 0,
+      .is_count_started   = 0,
+      .counter            = 0
 };
 struct btn btn_pin_14 = {
-        .is_long_press      = 0,
-        .was_short_pressed  = 0,
-        .is_count_started   = 0,
-        .counter            = 0
+      .is_long_press      = 0,
+      .was_short_pressed  = 0,
+      .is_count_started   = 0,
+      .counter            = 0
 };
 
 /* Заполнение структуры для ЦАП и реле */
 struct comparison_parameters comparison_parameter = {
-        .dac_A_dgt          = 0,
-        .dac_A_volt         = 0,
-        .dac_B_dgt          = 0,
-        .dac_B_volt         = 0,
-        .relay_state        = M27,
-        .calibration_state  = CALIBRATION_OFF,
+    .dac_A_dgt          = 0,
+    .dac_A_volt         = 0,
+    .dac_B_dgt          = 0,
+    .dac_B_volt         = 0,
+    .relay_state        = M27,
+    .calibration_state  = CALIBRATION_OFF,
 
-        /* Constant values */
-        .dac_dgt_val_max    = 4095,
-        .dac_dgt_val_min    = 0
-};
-
-/* Заполнение структуры для калибровки */
-struct calibration_parameters calibration = {
-        .is_tim3_working        = 0,
-        .g_tim3                 = 0,
-        .g_tim4                 = 0,
-        .v_polarity             = POSITIVE_POLARITY
+    /* Constant values */
+    .dac_dgt_val_max    = 4095,
+    .dac_dgt_val_min    = 0
 };
 
 /* USER CODE END PV */
@@ -164,6 +157,7 @@ int main(void)
   MX_CRC_Init();
   /* USER CODE BEGIN 2 */
   calib_table_init( &DevNVRAM.calibration_table );
+  tim_init_calibration();
 
   HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
   HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
@@ -456,6 +450,24 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/*
+ * @brief   Set positive polarity of external power supply
+ */
+void main_set_positive_polarity(void)
+{
+  HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_RESET);
+  tim_set_v_polarity(POSITIVE_POLARITY);
+}
+
+/*
+ * @brief   Set negative polarity of external power supply
+ */
+void main_set_negative_polarity(void)
+{
+  HAL_GPIO_WritePin(POLARITY_CONTROL_GPIO_Port, POLARITY_CONTROL_Pin, GPIO_PIN_SET);
+  tim_set_v_polarity(NEGATIVE_POLARITY);
+}
 
 /* USER CODE END 4 */
 

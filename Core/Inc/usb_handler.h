@@ -52,9 +52,9 @@ HAL_StatusTypeDef   usb_rx_handler(usb_rx_data_type *usb);
     0х08 - запрос измеренной длительности           data: 0B                                        answer: 0x08 + 1B status + 2B value
     0х09 - запрос измеренной длительности           data: 0B                                        answer: 0x09 + 1B status + 2B value
     --------------------------------------------------------------------------
-    0х0B - Запрос CRC калибровочной таблицы     [0x0B]                  answer: 0x0B + 4B (CRC)
-    0х0A - Прием калибровочной таблицы          [0x0A][1-4][offset][count][data]
-                                                                        answer: [0x0A]+[1-4]+[offset]+[count]+[status] (0x00 - сработал; 0x01 - не сработал)
+    0х0B - Запрос CRC калибровочной таблицы         data: [0x0B]                                    answer: 0x0B + 4B (CRC)
+    0х0A - Прием калибровочной таблицы              data: [0x0A][1-4][offset][count][data]
+                                                    answer: [0x0A]+[1-4]+[offset]+[count]+[status] (0x00 - сработал; 0x01 - не сработал)
             u8 Buf[0] = 0x0A
             u8 Buf[1] = 0x00-0x03
             ---------------------
@@ -71,7 +71,9 @@ HAL_StatusTypeDef   usb_rx_handler(usb_rx_data_type *usb);
             u16 Buf[count] = data[n-1]  u8
                 Buf[count] = data[n]    u8
 
-    0x0C - Установка полярности источника питания   data: 1B          answer: 0x0C + 1B status
+    0x0C - Установка полярности источника питания   data: 1B (0x00 - прямая полярность - POSITIVE_POLARITY
+                                                              0x01 - обратная полярность - NEGATIVE POLARITY
+                                                    answer: 0x0C + 1B status
 
     0х0D - Запись во флеш калибровочной таблицы     data: 0B          answer: 0x0D + 1B status
     0x0E - Прием параметров калибровки:

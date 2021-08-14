@@ -62,12 +62,6 @@ enum DacChannel {
     CH_B = 0x01          // ЦАП B
 };
 
-/* Полярность внешнего источника питания при калибовке */
-enum VipPolarity {
-    POSITIVE_POLARITY = 0x00, // GND - GND
-    NEGATIVE_POLARITY = 0x01  // GND - VCC
-};
-
 /*-USER TYPES AND STRUCTURES-------------------------------------------------*/
 
 /* Переменные для установки компарирования для работы ЦАП и реле */
@@ -85,15 +79,6 @@ struct comparison_parameters {
   const uint16_t  dac_dgt_val_min;      // минимальное  значение ЦАП
 };
 
-/* Переменные для калибровки */
-struct calibration_parameters {
-    uint8_t is_tim3_working;
-    uint16_t g_tim3;
-    uint16_t g_tim4;
-
-    enum VipPolarity v_polarity;    // Полярность источника питания
-};
-
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -105,6 +90,9 @@ struct calibration_parameters {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
+
+void main_set_positive_polarity(void);
+void main_set_negative_polarity(void);
 
 /* USER CODE END EFP */
 
