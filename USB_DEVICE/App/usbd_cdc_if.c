@@ -149,7 +149,7 @@ void USB_Reset(void)
     /* Reset USB DP (D+) */
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 
-    /* �?нициализируем пин DP как выход */
+    /* �?нициализируем пин DP как выход */
     GPIO_InitStruct.Pin = GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -318,18 +318,17 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	/* Запись данных в общую глобальную переменную для
 	 * хранения пакета данных - usb_rx_data */
 	if ( usb_rx_data.is_handled  == false ) {
-	    /* Если данные пакета ещё не обработаны, то
-	     * ошибка - прием нового пакета пока не возможен.
-	     * Следовательно, отправляем пакет из 5-ти нулей,
-	     * как показатель об ошибке. */
-	    uint8_t b[] = {0,0,0,0,0};
-	    CDC_Transmit_FS(b, strlen( (char*)b) );
-	}
-	else {
-	    memcpy( usb_rx_data.buff, Buf, *Len );
-	    usb_rx_data.len         = *Len;
-	    usb_rx_data.is_handled  = false;
-	    usb_rx_data.is_received = true;
+    /* Если данные пакета ещё не обработаны, то
+     * ошибка - прием нового пакета пока не возможен.
+     * Следовательно, отправляем пакет из 5-ти нулей,
+     * как показатель об ошибке. */
+    uint8_t b[] = {0,0,0,0,0};
+    CDC_Transmit_FS(b, strlen( (char*)b) );
+	} else {
+    memcpy( usb_rx_data.buff, Buf, *Len );
+    usb_rx_data.len         = *Len;
+    usb_rx_data.is_handled  = false;
+    usb_rx_data.is_received = true;
 	}
 
 	return (USBD_OK);

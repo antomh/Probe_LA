@@ -238,7 +238,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                   sizeof(uint16_t));
           CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
 
-          tim_set_tim3_duration_of_capture(0);
+          tim_set_tim3_duration_of_capture(0xFFFE);
           break;
 
             /* Правильный ответ протокола, раскомментировать, когда будет подправлена утилита Йоноса */
@@ -268,7 +268,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                     sizeof(uint16_t));
             CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
 
-            tim_set_tim4_duration_of_capture(0);
+            tim_set_tim4_duration_of_capture(0xFFFE);
             break;
 
             /* Правильный ответ протокола, раскомментировать, когда будет подправлена утилита Йоноса */
@@ -369,7 +369,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                 }
                 case 0x02 :
                 {
-                    if (dataStartNumber >= MAX_VAL_M27 ||
+                    if ( dataStartNumber >= MAX_VAL_M27 ||
                          dataEndNumber > MAX_VAL_M27    ||
                          dataOffset > usb_max_calib_value) {
                          usb_tx_buff[6] = 0x01;   /* Произошла ошибка - возвращаем 0х01 */
@@ -398,7 +398,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                 }
                 case 0x03 :
                 {
-                    if (dataStartNumber >= MAX_VAL_M27 ||
+                    if ( dataStartNumber >= MAX_VAL_M27 ||
                          dataEndNumber > MAX_VAL_M27    ||
                          dataOffset > usb_max_calib_value) {
                          usb_tx_buff[6] = 0x01;   /* Произошла ошибка - возвращаем 0х01 */
@@ -475,19 +475,17 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
 //        {
         case 0x0C :
         {
-            if (usb->len >= 2)
-            {
-                if ( flash_write_calibTable( &DevNVRAM ) != HAL_OK ) {
-                    break;
-                }
-                usb_tx_buff[1] = 0x00; // успешно
+          if (usb->len >= 2) {
+            if (flash_write_calibTable(&DevNVRAM) != HAL_OK) {
+              break;
             }
-            else {
-                usb_tx_buff[1] = 0x01; // ошибка
-            }
-            usb_tx_buff[0] = cmd;
-            CDC_Transmit_FS(usb_tx_buff, 2);
-            break;
+            usb_tx_buff[1] = 0x00; // успешно
+          } else {
+            usb_tx_buff[1] = 0x01; // ошибка
+          }
+          usb_tx_buff[0] = cmd;
+          CDC_Transmit_FS(usb_tx_buff, 2);
+          break;
         }
 
         /* Команда приема параметров калибровочной таблицы */
@@ -511,7 +509,13 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
         /* Считывание таблицы со щупа */
         case 0x0F :
         {
-            break;
+          if (usb->len == 1) {
+
+          } else {
+            usb_tx_buff[0] = cmd;
+            CDC_Transmit_FS(usb_tx_buff, 1);
+          }
+          break;
         }
 
         /* По умолчанию, если прочитанная команда не соответствует ни одной команде

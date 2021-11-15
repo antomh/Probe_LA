@@ -13,8 +13,6 @@
 
 /* Переменные для калибровки */
 struct calibration_parameters {
-  uint8_t  is_tim3_working;
-  uint8_t  is_tim4_working;
   uint16_t tim3_duration_of_capture;
   uint16_t tim4_duration_of_capture;
   enum VipPolarity v_polarity;
@@ -29,10 +27,8 @@ static struct calibration_parameters calibration;
 void tim_init_calibration(void)
 {
   /* Заполнение структуры для калибровки */
-  calibration.is_tim3_working           = 1;
-  calibration.is_tim4_working           = 0;
-  calibration.tim3_duration_of_capture  = 0;
-  calibration.tim4_duration_of_capture  = 0;
+  calibration.tim3_duration_of_capture  = 0xFFFF;
+  calibration.tim4_duration_of_capture  = 0xFFFF;
   main_set_positive_polarity();
 }
 
