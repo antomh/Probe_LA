@@ -103,11 +103,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
                     /* DELETE THIS */
                     main_set_positive_polarity();
+                    /* Переключение реле */
+                    if (comparison_parameter.relay_state == M27) {
+                      main_set_relay_state_m12();
+                    } else {
+                      main_set_relay_state_m27();
+                    }
                     /*-------------*/
 
                     /*---------------------------------------------*/
 
-                    btn_pin_12.counter    = 0;
+                    btn_pin_12.counter          = 0;
                     btn_pin_12.is_count_started = 0;
                     break;
                 }
@@ -138,7 +144,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
                         /*---------------------------------------------*/
 
-                        btn_pin_13.counter    = 0;
+                        btn_pin_13.counter          = 0;
                         btn_pin_13.is_count_started = 0;
                         break;
                     }
@@ -162,9 +168,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
                         /* Основной код, который надо делать по кнопке */
                         btn_pin_14.was_short_pressed = 1;
+
                         /*---------------------------------------------*/
 
-                        btn_pin_14.counter    = 0;
+                        btn_pin_14.counter          = 0;
                         btn_pin_14.is_count_started = 0;
                         break;
                     }

@@ -68,13 +68,11 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
             if (usb->len >= 2 ) {
               if ( usb->buff[1] == 0x01 ) {
                 /* Включение реле -> установка режима 12 вольт */
-                comparison_parameter.relay_state = M12;
-                HAL_GPIO_WritePin(RELAY_CONTROL_GPIO_Port, RELAY_CONTROL_Pin, GPIO_PIN_SET);
+                main_set_relay_state_m12();
               }
               else if (usb->buff[1] == 0x00) {
                 /* Выключение реле -> установка режима 27 вольт */
-                comparison_parameter.relay_state = M27;
-                HAL_GPIO_WritePin(RELAY_CONTROL_GPIO_Port, RELAY_CONTROL_Pin, GPIO_PIN_RESET);
+                main_set_relay_state_m27();
               }
 
               /* Переинициализация значения ЦАПов для сброса и установки правильных значений */

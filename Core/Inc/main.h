@@ -93,6 +93,8 @@ void Error_Handler(void);
 
 void main_set_positive_polarity(void);
 void main_set_negative_polarity(void);
+void main_set_relay_state_m12(void);
+void main_set_relay_state_m27(void);
 
 /* USER CODE END EFP */
 

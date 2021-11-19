@@ -469,6 +469,32 @@ void main_set_negative_polarity(void)
   tim_set_v_polarity(NEGATIVE_POLARITY);
 }
 
+/**
+ * @function  main_set_relay_state_m12()
+ * @brife     Установка режима работы щупа.
+ * @param     void
+ * @return    void
+ * @details   Установка режима работы щупа в 12 В включением реле.
+*/
+void main_set_relay_state_m12(void)
+{
+  comparison_parameter.relay_state = M12;
+  HAL_GPIO_WritePin(RELAY_CONTROL_GPIO_Port, RELAY_CONTROL_Pin, GPIO_PIN_SET);
+}
+
+/**
+ * @function  main_set_relay_state_m27()
+ * @brife     Установка режима работы щупа.
+ * @param     void
+ * @return    void
+ * @details   Установка режима работы щупа в 27 В отключением реле.
+*/
+void main_set_relay_state_m27(void)
+{
+  comparison_parameter.relay_state = M27;
+  HAL_GPIO_WritePin(RELAY_CONTROL_GPIO_Port, RELAY_CONTROL_Pin, GPIO_PIN_RESET);
+}
+
 /* USER CODE END 4 */
 
 /**
