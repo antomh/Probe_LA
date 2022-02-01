@@ -301,7 +301,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
       } else if (tim4_delta >= 0 && tim4_delta < TIME_PERIOD_MS_MAX) {
         tim_set_tim4_duration_of_capture(tim4_delta);
       } else {
-        /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
+        /* В случае ошибки: получения некорректного значения, запись в
+         * переменную длительности захваченного импульса заведомо неправильного
+         * значения */
         tim_set_tim4_duration_of_capture(0xFFFF);
       }
     }
@@ -319,7 +321,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
       } else if (tim3_delta >= 0 && tim3_delta < TIME_PERIOD_MS_MAX) {
         tim_set_tim3_duration_of_capture(tim3_delta);
       } else {
-        /* В случае ошибки: получения некорректного значения, запись в g_tim заведомо неправильного значения */
+        /* В случае ошибки: получения некорректного значения, запись в
+         * переменную длительности захваченного импульса заведомо неправильного
+         * значения */
         tim_set_tim3_duration_of_capture(0xFFFF);
       }
     }
@@ -327,4 +331,4 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 }
 
 /* USER CODE END 1 */
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+

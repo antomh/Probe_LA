@@ -495,6 +495,18 @@ void main_set_relay_state_m27(void)
   HAL_GPIO_WritePin(RELAY_CONTROL_GPIO_Port, RELAY_CONTROL_Pin, GPIO_PIN_RESET);
 }
 
+/**
+ * @function  main_get_relay_state()
+ * @brife     Получение состояния реле щупа.
+ * @param     void
+ * @return    enum RelayState
+ * @details   Возвращает текущее состояние реле делителя щупа ЛА.
+*/
+enum RelayState main_get_relay_state(void)
+{
+  return comparison_parameter.relay_state;
+}
+
 /* USER CODE END 4 */
 
 /**
@@ -527,4 +539,3 @@ void assert_failed(uint8_t *file, uint32_t line)
 }
 #endif /* USE_FULL_ASSERT */
 
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

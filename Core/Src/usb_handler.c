@@ -175,27 +175,23 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
           break;
         }
 
-        /* Команда запроса состояния ЦАПов */
+        /* Команда запроса состояния ЦАПов и реле */
         case 0x05 :
         {
+          uint16_t dac_A = 0x0000;
+          uint16_t dac_B = 0x0000;
           if (comparison_parameter.calibration_state == CALIBRATION_OFF) {
-            memcpy( usb_tx_buff + 2,
-                    &comparison_parameter.dac_A_volt,
-                    sizeof(uint16_t) );
-            memcpy( usb_tx_buff + 4,
-                    &comparison_parameter.dac_B_volt,
-                    sizeof(uint16_t) );
+            dac_A = comparison_parameter.dac_A_volt;
+            dac_B = comparison_parameter.dac_B_volt;
           } else if (comparison_parameter.calibration_state == CALIBRATION_ON) {
-            memcpy( usb_tx_buff + 2,
-                    &comparison_parameter.dac_A_dgt,
-                    sizeof(uint16_t) );
-            memcpy( usb_tx_buff + 4,
-                    &comparison_parameter.dac_B_dgt,
-                    sizeof(uint16_t) );
+            dac_A = comparison_parameter.dac_A_dgt;
+            dac_B = comparison_parameter.dac_B_dgt;
           }
+          memcpy( usb_tx_buff + 2, &dac_A, sizeof(uint16_t) );
+          memcpy( usb_tx_buff + 4, &dac_B, sizeof(uint16_t) );
 
           usb_tx_buff[0] = cmd;
-          usb_tx_buff[1] = comparison_parameter.relay_state;
+          usb_tx_buff[1] = main_get_relay_state();
           CDC_Transmit_FS(usb_tx_buff, 6);
           break;
         }
@@ -238,22 +234,6 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
 
           tim_set_tim3_duration_of_capture(0xFFFE);
           break;
-
-            /* Правильный ответ протокола, раскомментировать, когда будет подправлена утилита Йоноса */
-            /* После исправления, можно удалять функции EnableTIM3() и EnableTIM4() */
-//            usb_tx_buff[0] = cmd;
-//            uint16_t temp = GetTIM3();
-//            /* Если получено некорректное значение, значения tim возвращаются = 0xFFFF */
-//            if (temp == 0xFFFF) {
-//              usb_tx_buff[1] = 1;
-//            } else {
-//              usb_tx_buff[1] = 0;
-//            }
-//            memcpy( usb_tx_buff + 2,
-//                    &temp,
-//                    sizeof(uint16_t) );
-//            CDC_Transmit_FS(usb_tx_buff, 2 + sizeof(uint16_t));
-//            break;
         }
 
         /* Команда запроса измеренной длительности канала B */
@@ -268,21 +248,6 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
 
             tim_set_tim4_duration_of_capture(0xFFFE);
             break;
-
-            /* Правильный ответ протокола, раскомментировать, когда будет подправлена утилита Йоноса */
-//            usb_tx_buff[0] = cmd;
-//            uint16_t temp = GetTIM4();
-//            /* Если получено некорректное значение, значения tim возвращаются = 0xFFFF */
-//            if (temp == 0xFFFF) {
-//              usb_tx_buff[1] = 1;
-//            } else {
-//              usb_tx_buff[1] = 0;
-//            }
-//            memcpy( usb_tx_buff + 2,
-//                    &temp,
-//                    sizeof(uint16_t) );
-//            CDC_Transmit_FS(usb_tx_buff, 2 + sizeof(uint16_t));
-//            break;
         }
 
         /* Команда приема калибровочной таблицы */

@@ -95,6 +95,7 @@ void main_set_positive_polarity(void);
 void main_set_negative_polarity(void);
 void main_set_relay_state_m12(void);
 void main_set_relay_state_m27(void);
+enum RelayState main_get_relay_state(void);
 
 /* USER CODE END EFP */
 
@@ -120,5 +121,3 @@ void main_set_relay_state_m27(void);
 #endif
 
 #endif /* __MAIN_H */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

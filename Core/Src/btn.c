@@ -103,12 +103,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
                     /* DELETE THIS */
                     main_set_positive_polarity();
-                    /* Переключение реле */
-                    if (comparison_parameter.relay_state == M27) {
-                      main_set_relay_state_m12();
-                    } else {
-                      main_set_relay_state_m27();
-                    }
                     /*-------------*/
 
                     /*---------------------------------------------*/
@@ -168,6 +162,14 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
                         /* Основной код, который надо делать по кнопке */
                         btn_pin_14.was_short_pressed = 1;
+
+                        /* Переключение реле */
+                        if (main_get_relay_state() == M27) {
+                          main_set_relay_state_m12();
+                        } else {
+                          main_set_relay_state_m27();
+                        }
+                        /*-------------*/
 
                         /*---------------------------------------------*/
 
