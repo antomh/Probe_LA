@@ -58,7 +58,6 @@ union NVRAM DevNVRAM;
 /* Структура для организации приема пакетов по USB */
 usb_rx_data_type usb_rx_data = {
       .is_handled     = true,
-      .is_received    = false,
       .len            = 0,
       .buff           = {0,0,0,0,0,0,0,0,
                          0,0,0,0,0,0,0,0,
@@ -177,9 +176,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1)
 	{
-    if ( usb_rx_data.is_received == true ) {
-      usb_rx_handler(&usb_rx_data);
-    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -418,8 +414,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
-  USB_Reset();
-
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, AD5312_LDAC_Pin|RELAY_CONTROL_Pin|AD5312_SYNC_Pin|POLARITY_CONTROL_Pin, GPIO_PIN_RESET);
 
@@ -435,6 +429,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB12 PB13 PB14 */

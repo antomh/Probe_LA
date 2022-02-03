@@ -16,6 +16,9 @@ enum VipPolarity {
   NEGATIVE_POLARITY = 0x01  // GND - VCC
 };
 
+/*-DEFINITIONS---------------------------------------------------------------*/
+#define TIME_PERIOD_MS_MAX   1000
+
 /*-FUNCTIONS-----------------------------------------------------------------*/
 
 void tim_init_calibration(void);

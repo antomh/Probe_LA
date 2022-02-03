@@ -24,7 +24,7 @@
 
 /* USER CODE BEGIN INCLUDE */
 #include "main.h"
-#include "string.h"
+#include "stdlib.h"
 #include "stdbool.h"
 #include "stdio.h"
 #include "logic_calibration_table.h"
@@ -309,9 +309,9 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	 * программа, и можно посмотреть входящие другие пакеты по точке
 	 * останова. */
 //	if (Buf[0] == 0x06) {
-//	    uint8_t b[] = {0x06, 0x00, 0x00, 0x00};
-//	    CDC_Transmit_FS(b, 4);
-//	    return (USBD_OK);
+//    uint8_t b[] = {0x06, 0x00, 0x00, 0x00};
+//    CDC_Transmit_FS(b, sizeof(b));
+//    return (USBD_OK);
 //	}
 	/*-------*/
 
@@ -323,12 +323,14 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
      * Следовательно, отправляем пакет из 5-ти нулей,
      * как показатель об ошибке. */
     uint8_t b[] = {0,0,0,0,0};
-    CDC_Transmit_FS(b, strlen( (char*)b) );
+    CDC_Transmit_FS(b, sizeof(b));
 	} else {
-    memcpy( usb_rx_data.buff, Buf, *Len );
+	  /* Запись данных в структуру */
+    memmove( usb_rx_data.buff, Buf, *Len );
     usb_rx_data.len         = *Len;
     usb_rx_data.is_handled  = false;
-    usb_rx_data.is_received = true;
+    /* Передача заполненной структуры в функцию обработки пакета */
+    usb_rx_handler(&usb_rx_data);
 	}
 
 	return (USBD_OK);

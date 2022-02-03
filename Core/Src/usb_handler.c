@@ -39,14 +39,11 @@ extern struct comparison_parameters comparison_parameter;
  */
 HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
 {
-    if ( usb->is_received != true ||
-         usb->is_handled  != false )
-    {
-        /* Если пакет ещё не принят или уже обработан, то
+    if ( usb->is_handled  == true ) {
+        /* Если пакет уже обработан, то
          * ошибка - обрабатывать либо ещё, либо уже нечего. */
         return HAL_ERROR;
     }
-    usb->is_received = false;
 
     /*-MAIN HANDLER CODE-----------------------------------------------------*/
 
@@ -95,7 +92,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
             CDC_Transmit_FS(usb_tx_buff, 2);
             break;
 
-        /* Команда калибровки ЦАП А */
+        /* Команда установки значения ЦАП А */
         case 0x02 :
         {
           if (usb->len >= 3) {
@@ -126,7 +123,7 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
           break;
         }
 
-        /* Команда калибровки ЦАП В */
+        /* Команда установки значения ЦАП В */
         case 0x03 :
         {
           if (usb->len >= 3) {
@@ -232,22 +229,22 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
                   sizeof(uint16_t));
           CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
 
-          tim_set_tim3_duration_of_capture(0xFFFE);
+          tim_set_tim3_duration_of_capture(0xFFFF);
           break;
         }
 
         /* Команда запроса измеренной длительности канала B */
         case 0x09 :
         {
-            usb_tx_buff[0] = cmd;
-            uint16_t tim = tim_get_tim4_duration_of_capture();
-            memcpy( usb_tx_buff + 1,
-                    &tim,
-                    sizeof(uint16_t));
-            CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
+          usb_tx_buff[0] = cmd;
+          uint16_t tim = tim_get_tim4_duration_of_capture();
+          memcpy( usb_tx_buff + 1,
+                  &tim,
+                  sizeof(uint16_t));
+          CDC_Transmit_FS(usb_tx_buff, 1 + sizeof(uint16_t));
 
-            tim_set_tim4_duration_of_capture(0xFFFE);
-            break;
+          tim_set_tim4_duration_of_capture(0xFFFF);
+          break;
         }
 
         /* Команда приема калибровочной таблицы */
@@ -469,7 +466,8 @@ HAL_StatusTypeDef usb_rx_handler(usb_rx_data_type *usb)
             break;
         }
 
-        /* Считывание таблицы со щупа */
+        /* Считывание таблицы со щупа
+         * TODO: не реализовано */
         case 0x0F :
         {
           if (usb->len == 1) {

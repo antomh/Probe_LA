@@ -44,8 +44,6 @@
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
-#define TIME_PERIOD_MS_MAX   1000
-
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
